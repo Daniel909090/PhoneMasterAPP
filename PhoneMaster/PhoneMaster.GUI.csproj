@@ -10,21 +10,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="NewFolder\**" />
-    <EmbeddedResource Remove="NewFolder\**" />
-    <None Remove="NewFolder\**" />
-    <Page Remove="NewFolder\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="Assets\logo.png" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="Assets\favicon.ico" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Resource Include="Assets\favicon.ico" />
     <Resource Include="Assets\logo.png" />
   </ItemGroup>

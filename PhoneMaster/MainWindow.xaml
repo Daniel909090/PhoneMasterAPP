@@ -4,7 +4,7 @@
         Title="PhoneMaster"
         Height="600"
         Width="900"
-        Icon="C:\Users\pasar\OneDrive - New College Lanarkshire\HND NextGen Software Development\Software Development\C#\PhoneMaster\PhoneMaster\Assets\favicon.ico"
+        Icon="\Assets\favicon.ico"
         WindowStartupLocation="CenterScreen">
 
     <Grid>
@@ -228,8 +228,6 @@
         <Grid x:Name="ProcessOrdersPanel" Visibility="Collapsed" Margin="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="2*"/>
-                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
@@ -239,74 +237,266 @@
                FontWeight="Bold"
                Margin="0,0,0,10"/>
 
-            <!-- Pending orders list -->
-            <DataGrid x:Name="PendingOrdersGrid"
-              Grid.Row="1"
-              AutoGenerateColumns="False"
-              IsReadOnly="True"
-              SelectionMode="Single"
-              SelectionChanged="PendingOrdersGrid_SelectionChanged"
-              Margin="0,0,0,10">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Client" Binding="{Binding ClientName}" Width="*"/>
-                    <DataGridTextColumn Header="Phone" Binding="{Binding PhoneName}" Width="*"/>
-                    <DataGridTextColumn Header="Quantity" Binding="{Binding Quantity}" Width="100"/>
-                    <DataGridTextColumn Header="Contract" Binding="{Binding ContractType}" Width="150"/>
-                    <DataGridTextColumn Header="Total Price" Binding="{Binding TotalPrice, StringFormat=£{0:F2}}" Width="120"/>
-                </DataGrid.Columns>
-            </DataGrid>
-
-            <!-- Payment / staff info -->
-            <Grid Grid.Row="2" Margin="0,0,0,10">
+            <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="200"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="200"/>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="1.2*"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Text="Payment Method:"
-                   VerticalAlignment="Center"
-                   Margin="0,0,10,0"/>
+                <!-- LEFT SIDE: Pending Orders -->
+                <Grid Grid.Column="0" Margin="0,0,10,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="2*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                <ComboBox x:Name="PaymentMethodBox"
-                  Grid.Column="1"
-                  SelectedIndex="0">
-                    <ComboBoxItem Content="CASH"/>
-                    <ComboBoxItem Content="CARD"/>
-                </ComboBox>
+                    <!-- Pending orders list -->
+                    <DataGrid x:Name="PendingOrdersGrid"
+                      Grid.Row="0"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      SelectionMode="Single"
+                      SelectionChanged="PendingOrdersGrid_SelectionChanged"
+                      Margin="0,0,0,10">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Client" Binding="{Binding ClientName}" Width="*"/>
+                            <DataGridTextColumn Header="Phone" Binding="{Binding PhoneName}" Width="*"/>
+                            <DataGridTextColumn Header="Quantity" Binding="{Binding Quantity}" Width="100"/>
+                            <DataGridTextColumn Header="Contract" Binding="{Binding ContractType}" Width="150"/>
+                            <DataGridTextColumn Header="Total Price" Binding="{Binding TotalPrice, StringFormat=£{0:F2}}" Width="120"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
 
-                <TextBlock Grid.Column="3"
-                   Text="Processed By:"
-                   VerticalAlignment="Center"
-                   Margin="0,0,10,0"/>
+                    <!-- Selected order summary -->
+                    <Border Grid.Row="1"
+                    BorderBrush="Gray"
+                    BorderThickness="1"
+                    Padding="10"
+                    Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="Selected Order Summary"
+                               FontWeight="Bold"
+                               Margin="0,0,0,10"/>
 
-                <TextBox x:Name="ProcessedByBox"
-                 Grid.Column="4"/>
+                            <TextBlock x:Name="ProcessSummaryText"
+                               Text="Select an order to view details."
+                               TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- RIGHT SIDE: Processing Panel -->
+                <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+
+                        <!-- Discount Section -->
+                        <Border BorderBrush="Gray"
+                        BorderThickness="1"
+                        Padding="10"
+                        Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="Discount Approval"
+                                   FontWeight="Bold"
+                                   Margin="0,0,0,10"/>
+
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Row="0"
+                                       Grid.Column="0"
+                                       Text="Apply Discount:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,10,5"/>
+
+                                    <ComboBox x:Name="ApplyDiscountBox"
+                                      Grid.Row="0"
+                                      Grid.Column="1"
+                                      SelectionChanged="ApplyDiscountBox_SelectionChanged"
+                                      Margin="0,0,0,5">
+                                        <ComboBoxItem Content="No"/>
+                                        <ComboBoxItem Content="Yes"/>
+                                    </ComboBox>
+
+                                    <TextBlock x:Name="ManagerUsernameLabel"
+                                       Grid.Row="1"
+                                       Grid.Column="0"
+                                       Text="Manager Username:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,10,5"
+                                       Visibility="Collapsed"/>
+
+                                    <TextBox x:Name="ManagerUsernameBox"
+                                     Grid.Row="1"
+                                     Grid.Column="1"
+                                     Margin="0,0,0,5"
+                                     Visibility="Collapsed"/>
+
+                                    <TextBlock x:Name="ManagerPasswordLabel"
+                                       Grid.Row="2"
+                                       Grid.Column="0"
+                                       Text="Manager Password:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,10,5"
+                                       Visibility="Collapsed"/>
+
+                                    <PasswordBox x:Name="ManagerPasswordBox"
+                                         Grid.Row="2"
+                                         Grid.Column="1"
+                                         Margin="0,0,0,5"
+                                         Visibility="Collapsed"/>
+
+                                    <TextBlock x:Name="DiscountPercentLabel"
+                                       Grid.Row="3"
+                                       Grid.Column="0"
+                                       Text="Discount %:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,10,0"
+                                       Visibility="Collapsed"/>
+
+                                    <TextBox x:Name="DiscountPercentBox"
+                                     Grid.Row="3"
+                                     Grid.Column="1"
+                                     TextChanged="DiscountPercentBox_TextChanged"
+                                     Visibility="Collapsed"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Payment Section -->
+                        <Border BorderBrush="Gray"
+                        BorderThickness="1"
+                        Padding="10"
+                        Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="Payment Details"
+                                   FontWeight="Bold"
+                                   Margin="0,0,0,10"/>
+
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Row="0"
+                                       Grid.Column="0"
+                                       Text="Payment Method:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,10,5"/>
+
+                                    <ComboBox x:Name="PaymentMethodBox"
+                                      Grid.Row="0"
+                                      Grid.Column="1"
+                                     
+                                      SelectionChanged="PaymentMethodBox_SelectionChanged"
+                                      Margin="0,0,0,5">
+                                        <ComboBoxItem Content="CASH"/>
+                                        <ComboBoxItem Content="CARD"/>
+                                    </ComboBox>
+
+                                    <TextBlock x:Name="SortCodeLabel"
+                                       Grid.Row="1"
+                                       Grid.Column="0"
+                                       Text="Sort Code:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,10,5"
+                                       Visibility="Collapsed"/>
+
+                                    <TextBox x:Name="SortCodeBox"
+                                     Grid.Row="1"
+                                     Grid.Column="1"
+                                     Margin="0,0,0,5"
+                                     Visibility="Collapsed"/>
+
+                                    <TextBlock x:Name="AccountNumberLabel"
+                                       Grid.Row="2"
+                                       Grid.Column="0"
+                                       Text="Account Number:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,10,0"
+                                       Visibility="Collapsed"/>
+
+                                    <TextBox x:Name="AccountNumberBox"
+                                     Grid.Row="2"
+                                     Grid.Column="1"
+                                     Visibility="Collapsed"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Staff Info -->
+                        <Border BorderBrush="Gray"
+                        BorderThickness="1"
+                        Padding="10"
+                        Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="Staff Information"
+                                   FontWeight="Bold"
+                                   Margin="0,0,0,10"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Column="0"
+                                       Text="Processed By:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,10,0"/>
+
+                                    <TextBox x:Name="ProcessedByBox"
+                                     Grid.Column="1"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Payment Summary -->
+                        <Border BorderBrush="Gray"
+                        BorderThickness="1"
+                        Padding="10">
+                            <StackPanel>
+                                <TextBlock Text="Payment Summary"
+                                   FontWeight="Bold"
+                                   Margin="0,0,0,10"/>
+
+                                <TextBlock x:Name="BasePriceText"
+                                   Text="Base Price: £0.00"
+                                   Margin="0,0,0,5"/>
+
+                                <TextBlock x:Name="DiscountAmountText"
+                                   Text="Discount Amount: £0.00"
+                                   Margin="0,0,0,5"/>
+
+                                <TextBlock x:Name="TotalPayableText"
+                                   Text="Total Payable: £0.00"
+                                   FontWeight="Bold"/>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
             </Grid>
 
-            <!-- Selected order summary -->
-            <Border Grid.Row="3"
-            BorderBrush="Gray"
-            BorderThickness="1"
-            Padding="10"
-            Margin="0,0,0,10">
-                <StackPanel>
-                    <TextBlock Text="Selected Order Summary"
-                       FontWeight="Bold"
-                       Margin="0,0,0,10"/>
-
-                    <TextBlock x:Name="ProcessSummaryText"
-                       Text="Select an order to view details."
-                       TextWrapping="Wrap"/>
-                </StackPanel>
-            </Border>
-
             <!-- Buttons -->
-            <StackPanel Grid.Row="4"
+            <StackPanel Grid.Row="2"
                 Orientation="Horizontal"
-                HorizontalAlignment="Right">
+                HorizontalAlignment="Right"
+                Margin="0,10,0,0">
                 <Button Content="Process Order"
                 Width="130"
                 Margin="5"

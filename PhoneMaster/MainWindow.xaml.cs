@@ -16,8 +16,12 @@ namespace PhoneMaster.GUI
         public MainWindow()
         {
             InitializeComponent();
-          
+            LoadContractTypes();
+
+            ApplyDiscountBox.SelectedIndex = 0;
+            PaymentMethodBox.SelectedIndex = 0;
         }
+        private double selectedOrderBasePrice = 0.0;
 
         private void LoadPhones()
         {
@@ -99,7 +103,13 @@ namespace PhoneMaster.GUI
                     ? PlanType.STANDARD
                     : PlanType.PREMIUM;
 
-                int duration = int.Parse(DurationBox.SelectedItem.ToString()!);
+                if (DurationBox.SelectedItem is not ComboBoxItem durationItem)
+                {
+                    MessageBox.Show("Select contract duration.");
+                    return null;
+                }
+
+                int duration = int.Parse(durationItem.Content?.ToString() ?? "0");
 
                 if (contractType == "Phone + SIM Package")
                 {
@@ -133,10 +143,8 @@ namespace PhoneMaster.GUI
         }
 
 
-        private void ClientTypeBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            UpdateOrderSummary();
-        }
+       
+
         private void StartButton_Click(object sender, RoutedEventArgs e)
         {
             WelcomePanel.Visibility = Visibility.Collapsed;
@@ -184,14 +192,21 @@ namespace PhoneMaster.GUI
             PendingOrdersGrid.ItemsSource = displayList;
         }
 
-        private void ContractTypeBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        private void ClientTypeBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (ContractTypeBox.SelectedItem == null)
+            LoadContractTypes();
+            UpdateOrderSummary();
+        }
+
+        private void ContractTypeBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ContractTypeBox.SelectedItem is not ComboBoxItem selectedItem)
                 return;
 
-            string contractType = ((System.Windows.Controls.ComboBoxItem)ContractTypeBox.SelectedItem).Content.ToString()!;
+            string contractType = selectedItem.Content?.ToString() ?? "";
 
             DurationBox.Items.Clear();
+            DurationBox.SelectedIndex = -1;
             DurationLabel.Visibility = Visibility.Collapsed;
             DurationBox.Visibility = Visibility.Collapsed;
 
@@ -201,19 +216,43 @@ namespace PhoneMaster.GUI
                 DurationLabel.Visibility = Visibility.Visible;
                 DurationBox.Visibility = Visibility.Visible;
 
-                DurationBox.Items.Add("12");
-                DurationBox.Items.Add("24");
+                DurationBox.Items.Add(new ComboBoxItem { Content = "12" });
+                DurationBox.Items.Add(new ComboBoxItem { Content = "24" });
             }
             else if (contractType == "Hire Contract")
             {
-                DurationLabel.Text = "Hire Length (Years)";
+                DurationLabel.Text = "Hire Duration (Years)";
                 DurationLabel.Visibility = Visibility.Visible;
                 DurationBox.Visibility = Visibility.Visible;
 
-                DurationBox.Items.Add("1");
-                DurationBox.Items.Add("2");
+                DurationBox.Items.Add(new ComboBoxItem { Content = "1" });
+                DurationBox.Items.Add(new ComboBoxItem { Content = "2" });
             }
+
+            if (DurationBox.Items.Count > 0)
+                DurationBox.SelectedIndex = 0;
+
             UpdateOrderSummary();
+        }
+
+        private void LoadContractTypes()
+        {
+            ContractTypeBox.Items.Clear();
+
+            if (ClientTypeBox.SelectedItem is not ComboBoxItem selectedItem)
+                return;
+
+            string clientType = selectedItem.Content?.ToString() ?? "";
+
+            ContractTypeBox.Items.Add(new ComboBoxItem { Content = "SIM-Free" });
+            ContractTypeBox.Items.Add(new ComboBoxItem { Content = "Phone + SIM Package" });
+
+            if (clientType == "Company")
+            {
+                ContractTypeBox.Items.Add(new ComboBoxItem { Content = "Hire Contract" });
+            }
+
+            ContractTypeBox.SelectedIndex = 0;
         }
 
         private void ContinueOrder_Click(object sender, RoutedEventArgs e)
@@ -248,27 +287,123 @@ namespace PhoneMaster.GUI
 
         private void PendingOrdersGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var selected = PendingOrdersGrid.SelectedItem as PendingOrderDisplay;
-
-            if (selected == null)
+            if (PendingOrdersGrid.SelectedItem == null)
             {
                 ProcessSummaryText.Text = "Select an order to view details.";
+                selectedOrderBasePrice = 0.0;
+                UpdatePaymentSummary();
                 return;
             }
 
-            var order = selected.OrderRef;
-            var phone = order.GetPhone();
-            var client = order.GetClient();
-            var contract = order.GetContract();
+            dynamic selectedOrder = PendingOrdersGrid.SelectedItem;
 
             ProcessSummaryText.Text =
-                $"Client: {client?.Name}\n" +
-                $"Phone: {phone?.Manufacturer} {phone?.Model} ({phone?.Storage})\n" +
-                $"Quantity: {order.GetQuantity()}\n" +
-                $"Contract: {contract?.GetContractType()}\n" +
-                $"Total Price: £{order.GetTotalAfterDiscount():F2}";
+                $"Client: {selectedOrder.ClientName}\n" +
+                $"Phone: {selectedOrder.PhoneName}\n" +
+                $"Quantity: {selectedOrder.Quantity}\n" +
+                $"Contract: {selectedOrder.ContractType}\n" +
+                $"Total Price: £{selectedOrder.TotalPrice:F2}";
+
+            selectedOrderBasePrice = selectedOrder.TotalPrice;
+
+            UpdatePaymentSummary();
         }
 
+        private void ApplyDiscountBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ApplyDiscountBox.SelectedItem is not ComboBoxItem selectedItem)
+                return;
+
+            if (ManagerUsernameLabel == null || ManagerUsernameBox == null ||
+                ManagerPasswordLabel == null || ManagerPasswordBox == null ||
+                DiscountPercentLabel == null || DiscountPercentBox == null)
+                return;
+
+            string applyDiscount = selectedItem.Content?.ToString() ?? "";
+            bool showFields = applyDiscount == "Yes";
+
+            ManagerUsernameLabel.Visibility = showFields ? Visibility.Visible : Visibility.Collapsed;
+            ManagerUsernameBox.Visibility = showFields ? Visibility.Visible : Visibility.Collapsed;
+
+            ManagerPasswordLabel.Visibility = showFields ? Visibility.Visible : Visibility.Collapsed;
+            ManagerPasswordBox.Visibility = showFields ? Visibility.Visible : Visibility.Collapsed;
+
+            DiscountPercentLabel.Visibility = showFields ? Visibility.Visible : Visibility.Collapsed;
+            DiscountPercentBox.Visibility = showFields ? Visibility.Visible : Visibility.Collapsed;
+
+            if (!showFields)
+            {
+                ManagerUsernameBox.Text = "";
+                ManagerPasswordBox.Password = "";
+                DiscountPercentBox.Text = "";
+            }
+
+            UpdatePaymentSummary();
+        }
+
+        private void PaymentMethodBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (PaymentMethodBox.SelectedItem is not ComboBoxItem selectedItem)
+                return;
+
+            if (SortCodeLabel == null || SortCodeBox == null ||
+                AccountNumberLabel == null || AccountNumberBox == null)
+                return;
+
+            string paymentMethod = selectedItem.Content?.ToString() ?? "";
+            bool showCardFields = paymentMethod == "CARD";
+
+            SortCodeLabel.Visibility = showCardFields ? Visibility.Visible : Visibility.Collapsed;
+            SortCodeBox.Visibility = showCardFields ? Visibility.Visible : Visibility.Collapsed;
+
+            AccountNumberLabel.Visibility = showCardFields ? Visibility.Visible : Visibility.Collapsed;
+            AccountNumberBox.Visibility = showCardFields ? Visibility.Visible : Visibility.Collapsed;
+
+            if (!showCardFields)
+            {
+                SortCodeBox.Text = "";
+                AccountNumberBox.Text = "";
+            }
+        }
+
+        private void DiscountPercentBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            UpdatePaymentSummary();
+        }
+
+        private void UpdatePaymentSummary()
+        {
+            double basePrice = selectedOrderBasePrice;
+            double discountPercent = 0.0;
+            double discountAmount = 0.0;
+            double totalPayable = basePrice;
+
+            if (ApplyDiscountBox.SelectedItem is ComboBoxItem selectedItem)
+            {
+                string applyDiscount = selectedItem.Content?.ToString() ?? "";
+
+                if (applyDiscount == "Yes")
+                {
+                    if (double.TryParse(DiscountPercentBox.Text, out double parsedDiscount))
+                    {
+                        discountPercent = parsedDiscount;
+                    }
+
+                    if (discountPercent < 0)
+                        discountPercent = 0;
+
+                    if (discountPercent > 100)
+                        discountPercent = 100;
+
+                    discountAmount = basePrice * (discountPercent / 100.0);
+                    totalPayable = basePrice - discountAmount;
+                }
+            }
+
+            BasePriceText.Text = $"Base Price: £{basePrice:F2}";
+            DiscountAmountText.Text = $"Discount Amount: £{discountAmount:F2}";
+            TotalPayableText.Text = $"Total Payable: £{totalPayable:F2}";
+        }
 
         private void UpdateOrderSummary()
         {
@@ -318,8 +453,14 @@ namespace PhoneMaster.GUI
                         ? PlanType.STANDARD
                         : PlanType.PREMIUM;
 
-                    int duration = int.Parse(DurationBox.SelectedItem.ToString()!);
+                    if (DurationBox.SelectedItem is not ComboBoxItem durationItem)
+                    {
+                        TotalPriceText.Text = "£0.00";
+                        MonthlyCostText.Text = "£0.00";
+                        return;
+                    }
 
+                    int duration = int.Parse(durationItem.Content?.ToString() ?? "0");
                     if (contractType == "Phone + SIM Package")
                     {
                         contract = new PhoneSimPackage(phone.Price, duration, planType);

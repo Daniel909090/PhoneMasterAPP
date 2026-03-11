@@ -9,7 +9,7 @@ namespace PhoneMaster.Core.Models
     public class SimFree : Contract
     {
         public SimFree(double basePrice)
-            : base("SIM Free Purchase", basePrice)
+            : base("SIM-Free ", basePrice)
         {
             ContractType = ContractType.SIM_FREE;
         }
