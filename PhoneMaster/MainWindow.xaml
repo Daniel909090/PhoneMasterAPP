@@ -2,40 +2,45 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="PhoneMaster"
-        Height="640"
+        Height="600"
         Width="900"
+        Icon="C:\Users\pasar\OneDrive - New College Lanarkshire\HND NextGen Software Development\Software Development\C#\PhoneMaster\PhoneMaster\Assets\favicon.ico"
         WindowStartupLocation="CenterScreen">
 
     <Grid>
 
         <!-- WELCOME SCREEN -->
-        <Grid x:Name="WelcomePanel" Background="#1f1f1f" Visibility="Collapsed">
-            <StackPanel VerticalAlignment="Center"
-                        HorizontalAlignment="Center">
+        <Grid x:Name="WelcomePanel" Visibility="Visible">
 
-                <TextBlock Text="WELCOME TO"
-                           Foreground="White"
-                           FontSize="22"
-                           HorizontalAlignment="Center"/>
+            <Grid.Background>
+                <ImageBrush ImageSource="/Assets/logo.png"
+                    Stretch="Uniform"/>
+            </Grid.Background>
 
-                <TextBlock Text="PhoneMaster"
-                           Foreground="White"
-                           FontSize="34"
-                           FontWeight="Bold"
-                           Margin="0,10,0,30"
-                           HorizontalAlignment="Center"/>
+            <Border Background="#88000000">
 
-                <Button Content="Press to Start"
-                        Width="180"
-                        Height="45"
-                        FontSize="16"
-                        Click="StartButton_Click"/>
-            </StackPanel>
+
+                <Button Content="ENTER"
+                        VerticalAlignment="Top"
+                   Width="120"
+                   Height="50"
+                     
+                    Click="StartButton_Click" 
+                        Margin="390,467,390,0" 
+                       
+                        FontWeight="Bold" Background="#FFB0E7B3" Opacity="0.9" BorderBrush="#FFEE0C0C"/>
+
+            </Border>
+
+
+
         </Grid>
 
         <!-- MAIN MENU -->
         <Grid x:Name="MenuPanel" Visibility="Collapsed">
+
             <StackPanel HorizontalAlignment="Center"
+                        Background= "#66000000"
                         VerticalAlignment="Center"
                         Width="300">
 
@@ -120,7 +125,7 @@
         </Grid>
 
         <!-- CREATE ORDER PANEL -->
-        <Grid x:Name="CreateOrderPanel" Visibility="V" Margin="10">
+        <Grid x:Name="CreateOrderPanel" Visibility="Collapsed" Margin="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
@@ -141,8 +146,7 @@
                 <DataGrid x:Name="CreateOrderPhonesGrid"
                           AutoGenerateColumns="True"
                           IsReadOnly="True"
-                          Margin="0,0,10,0"
-                          SelectionChanged="OrderInputChanged"/>
+                          SelectionChanged="OrderInputChanged" Margin="0,0,10,0"/>
 
                 <StackPanel Grid.Column="1">
                     <TextBlock Text="Quantity"/>
@@ -176,32 +180,30 @@
 
                     </ComboBox>
 
-                    <TextBlock x:Name="DurationLabel" Text="Duration" Visibility="Collapsed"/>
+                    <TextBlock x:Name="DurationLabel" Text="Duration" Visibility="Visible"/>
                     <ComboBox x:Name="DurationBox" 
                               Margin="0,0,0,20" 
                               Visibility="Collapsed" 
                               SelectionChanged="OrderInputChanged"/>
+                    <TextBlock Text="Order Summary"
+                             FontWeight="Bold"
+                             />
+                    <Border BorderBrush="Gray"
+                        BorderThickness="1"
+                        Padding="10" Height="148"
+                        >
+                        <StackPanel>
+                            <TextBlock Text="Total Price:" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="TotalPriceText"
+                          Text="£0.00"
+                             Margin="0,0,0,8"/>
 
-                    <TextBlock Text="Client Name"/>
-                    <TextBox x:Name="ClientNameBox" Margin="0,0,0,8"/>
+                            <TextBlock Text="Monthly Cost:" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="MonthlyCostText"
+                             Text="£0.00"/>
+                        </StackPanel>
+                    </Border>
 
-                    <TextBlock Text="Email"/>
-                    <TextBox x:Name="EmailBox" Margin="0,0,0,8"/>
-
-                    <TextBlock Text="Contact Phone"/>
-                    <TextBox x:Name="PhoneBox" Margin="0,0,0,8"/>
-
-                    <TextBlock Text="Address"/>
-                    <TextBox x:Name="AddressBox" Margin="0,0,0,8"/>
-
-                    <TextBlock Text="Postcode"/>
-                    <TextBox x:Name="PostcodeBox" Margin="0,0,0,8"/>
-
-                    <TextBlock Text="Town"/>
-                    <TextBox x:Name="TownBox" Margin="0,0,0,8"/>
-
-                    <TextBlock x:Name="VatLabel" Text="VAT Number" Visibility="Collapsed"/>
-                    <TextBox x:Name="VatNumberBox" Margin="0,0,0,8" Visibility="Collapsed"/>
 
                 </StackPanel>
             </Grid>
@@ -215,32 +217,10 @@
                         Margin="10"
                         Click="BackFromCreateOrder_Click"/>
 
-
-
-                <TextBlock Text="Order Summary"
-                             FontWeight="Bold"
-                             Margin="0,15,0,8"/>
-
-                <Border BorderBrush="Gray"
-                        BorderThickness="1"
-                        Padding="10"
-                        Margin="0,0,0,10">
-                    <StackPanel>
-                        <TextBlock Text="Total Price:" FontWeight="SemiBold"/>
-                        <TextBlock x:Name="TotalPriceText"
-                          Text="£0.00"
-                             Margin="0,0,0,8"/>
-
-                        <TextBlock Text="Monthly Cost:" FontWeight="SemiBold"/>
-                        <TextBlock x:Name="MonthlyCostText"
-                             Text="£0.00"/>
-                    </StackPanel>
-                </Border>
-
-                <Button Content="Send to Staff"
+                <Button Content="Continue"
                         Width="120"
                         Margin="10"
-                        Click="SendOrder_Click"/>
+                        Click="ContinueOrder_Click"/>
             </StackPanel>
         </Grid>
 
@@ -248,21 +228,25 @@
         <Grid x:Name="ProcessOrdersPanel" Visibility="Collapsed" Margin="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="2*"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <TextBlock Text="Process Orders"
-                       FontSize="24"
-                       FontWeight="Bold"
-                       Margin="0,0,0,10"/>
+               FontSize="24"
+               FontWeight="Bold"
+               Margin="0,0,0,10"/>
 
+            <!-- Pending orders list -->
             <DataGrid x:Name="PendingOrdersGrid"
-                      Grid.Row="1"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      SelectionMode="Single">
-
+              Grid.Row="1"
+              AutoGenerateColumns="False"
+              IsReadOnly="True"
+              SelectionMode="Single"
+              SelectionChanged="PendingOrdersGrid_SelectionChanged"
+              Margin="0,0,0,10">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Client" Binding="{Binding ClientName}" Width="*"/>
                     <DataGridTextColumn Header="Phone" Binding="{Binding PhoneName}" Width="*"/>
@@ -272,25 +256,71 @@
                 </DataGrid.Columns>
             </DataGrid>
 
-            <StackPanel Grid.Row="2"
-                        Orientation="Horizontal"
-                        HorizontalAlignment="Right"
-                        Margin="0,10,0,0">
+            <!-- Payment / staff info -->
+            <Grid Grid.Row="2" Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="200"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="200"/>
+                </Grid.ColumnDefinitions>
 
+                <TextBlock Text="Payment Method:"
+                   VerticalAlignment="Center"
+                   Margin="0,0,10,0"/>
+
+                <ComboBox x:Name="PaymentMethodBox"
+                  Grid.Column="1"
+                  SelectedIndex="0">
+                    <ComboBoxItem Content="CASH"/>
+                    <ComboBoxItem Content="CARD"/>
+                </ComboBox>
+
+                <TextBlock Grid.Column="3"
+                   Text="Processed By:"
+                   VerticalAlignment="Center"
+                   Margin="0,0,10,0"/>
+
+                <TextBox x:Name="ProcessedByBox"
+                 Grid.Column="4"/>
+            </Grid>
+
+            <!-- Selected order summary -->
+            <Border Grid.Row="3"
+            BorderBrush="Gray"
+            BorderThickness="1"
+            Padding="10"
+            Margin="0,0,0,10">
+                <StackPanel>
+                    <TextBlock Text="Selected Order Summary"
+                       FontWeight="Bold"
+                       Margin="0,0,0,10"/>
+
+                    <TextBlock x:Name="ProcessSummaryText"
+                       Text="Select an order to view details."
+                       TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Buttons -->
+            <StackPanel Grid.Row="4"
+                Orientation="Horizontal"
+                HorizontalAlignment="Right">
                 <Button Content="Process Order"
-                        Width="130"
-                        Margin="5"
-                        Click="ProcessSelectedOrder_Click"/>
+                Width="130"
+                Margin="5"
+                Click="ProcessSelectedOrder_Click"/>
 
                 <Button Content="Delete Order"
-                        Width="130"
-                        Margin="5"
-                        Click="DeleteOrder_Click"/>
+                Width="130"
+                Margin="5"
+                Click="DeleteOrder_Click"/>
 
                 <Button Content="Back"
-                        Width="100"
-                        Margin="5"
-                        Click="BackFromProcessOrders_Click"/>
+                Width="100"
+                Margin="5"
+                Click="BackFromProcessOrders_Click"/>
             </StackPanel>
         </Grid>
 

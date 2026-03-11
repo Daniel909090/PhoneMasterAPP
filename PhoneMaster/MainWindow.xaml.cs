@@ -10,15 +10,13 @@ namespace PhoneMaster.GUI
     public partial class MainWindow : Window
     {
         private Inventory inventory = new Inventory();
-        private PhoneMaster.Core.Models.Phone? selectedPhone;
-        private int selectedQuantity;
+        
         private PhoneMaster.Core.Services.Order? currentOrder;
         private List<PhoneMaster.Core.Services.Order> pendingOrders = new List<PhoneMaster.Core.Services.Order>();
         public MainWindow()
         {
             InitializeComponent();
-            
-
+          
         }
 
         private void LoadPhones()
@@ -34,7 +32,7 @@ namespace PhoneMaster.GUI
             UpdateOrderSummary();
         }
 
-        private PhoneMaster.Core.Services.Order? BuildOrderFromForm()
+        private PhoneMaster.Core.Services.Order? BuildOrderFromForm(Client client)
         {
             if (CreateOrderPhonesGrid.SelectedItem == null)
             {
@@ -56,7 +54,6 @@ namespace PhoneMaster.GUI
                 return null;
             }
 
-            // CLIENT TYPE
             if (ClientTypeBox.SelectedItem == null)
             {
                 MessageBox.Show("Select client type.");
@@ -66,45 +63,6 @@ namespace PhoneMaster.GUI
             string clientType =
                 ((ComboBoxItem)ClientTypeBox.SelectedItem).Content.ToString()!;
 
-            string name = ClientNameBox.Text.Trim();
-            string email = EmailBox.Text.Trim();
-            string contactPhone = PhoneBox.Text.Trim();
-            string address = AddressBox.Text.Trim();
-            string postcode = PostcodeBox.Text.Trim();
-            string town = TownBox.Text.Trim();
-
-            if (string.IsNullOrWhiteSpace(name) ||
-                string.IsNullOrWhiteSpace(email) ||
-                string.IsNullOrWhiteSpace(contactPhone) ||
-                string.IsNullOrWhiteSpace(address) ||
-                string.IsNullOrWhiteSpace(postcode) ||
-                string.IsNullOrWhiteSpace(town))
-            {
-                MessageBox.Show("Please fill all client details.");
-                return null;
-            }
-
-            Client client;
-
-            if (clientType == "Customer")
-            {
-                client = new Client(name, email, contactPhone, address, postcode, town);
-            }
-            else
-            {
-                string vatNumber = VatNumberBox.Text.Trim();
-
-                if (string.IsNullOrWhiteSpace(vatNumber))
-                {
-                    MessageBox.Show("Enter VAT number for company client.");
-                    return null;
-                }
-
-                client = new Client(name, vatNumber, email, contactPhone, address, postcode, town);
-                UpdateOrderSummary();
-            }
-
-            // CONTRACT
             if (ContractTypeBox.SelectedItem == null)
             {
                 MessageBox.Show("Select contract type.");
@@ -164,40 +122,20 @@ namespace PhoneMaster.GUI
                 }
             }
 
-
-
-
-            // CREATE ORDER
             var order = new PhoneMaster.Core.Services.Order(inventory);
-
             order.SetPhone(phone);
             order.SetQuantity(quantity);
             order.SetClient(client);
             order.SetContract(contract);
-
             order.CalculateTotal();
 
             return order;
         }
 
 
-        private void ClientTypeBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        private void ClientTypeBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (ClientTypeBox.SelectedItem == null)
-                return;
-
-            string clientType = ((ComboBoxItem)ClientTypeBox.SelectedItem).Content.ToString()!;
-
-            if (clientType == "Company")
-            {
-                VatLabel.Visibility = Visibility.Visible;
-                VatNumberBox.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                VatLabel.Visibility = Visibility.Collapsed;
-                VatNumberBox.Visibility = Visibility.Collapsed;
-            }
+            UpdateOrderSummary();
         }
         private void StartButton_Click(object sender, RoutedEventArgs e)
         {
@@ -220,59 +158,14 @@ namespace PhoneMaster.GUI
             CreateOrderPhonesGrid.ItemsSource = null;
             CreateOrderPhonesGrid.ItemsSource = inventory.GetPhones();
         }
-        private void PreviewOrder_Click(object sender, RoutedEventArgs e)
-        {
-            var order = BuildOrderFromForm();
-            if (order == null) return;
-
-            currentOrder = order;
-
-            var phone = order.GetPhone();
-            var contract = order.GetContract();
-
-            MessageBox.Show(
-                $"======= ORDER SUMMARY =======\n" +
-                $"Phone: {phone!.Manufacturer} {phone.Model} ({phone.Storage})\n" +
-                $"Quantity: {order.GetQuantity()}\n" +
-                $"Contract: {contract!.GetContractType()}\n" +
-                $"TOTAL PRICE: £{order.GetTotalAfterDiscount():F2}"
-            );
-        }
+     
         private void BackFromCreateOrder_Click(object sender, RoutedEventArgs e)
         {
             CreateOrderPanel.Visibility = Visibility.Collapsed;
             MenuPanel.Visibility = Visibility.Visible;
         }
 
-        private void NextCreateOrder_Click(object sender, RoutedEventArgs e)
-        {
-            if (CreateOrderPhonesGrid.SelectedItem == null)
-            {
-                MessageBox.Show("Please select a phone.");
-                return;
-            }
-
-            if (!int.TryParse(QuantityTextBox.Text, out int quantity) || quantity <= 0)
-            {
-                MessageBox.Show("Enter a valid quantity.");
-                return;
-            }
-
-            var phone = (PhoneMaster.Core.Models.Phone)CreateOrderPhonesGrid.SelectedItem;
-
-            if (quantity > phone.Stock)
-            {
-                MessageBox.Show("Not enough stock available.");
-                return;
-            }
-
-            selectedPhone = phone;
-            selectedQuantity = quantity;
-
-            MessageBox.Show(
-                $"Selected: {phone.Manufacturer} {phone.Model} ({phone.Storage})\nQuantity: {quantity}"
-            );
-        }
+       
         private void RefreshPendingOrdersGrid()
         {
             var displayList = pendingOrders.Select(order => new PendingOrderDisplay
@@ -322,19 +215,61 @@ namespace PhoneMaster.GUI
             }
             UpdateOrderSummary();
         }
-        private void SendOrder_Click(object sender, RoutedEventArgs e)
+
+        private void ContinueOrder_Click(object sender, RoutedEventArgs e)
         {
-            var order = BuildOrderFromForm();
-            if (order == null) return;
+            if (ClientTypeBox.SelectedItem == null)
+            {
+                MessageBox.Show("Select client type.");
+                return;
+            }
+
+            string clientType =
+                ((ComboBoxItem)ClientTypeBox.SelectedItem).Content.ToString()!;
+
+            var clientWindow = new ClientDetailsWindow(clientType);
+            clientWindow.Owner = this;
+
+            bool? result = clientWindow.ShowDialog();
+
+            if (result != true || clientWindow.CreatedClient == null)
+                return;
+
+            var order = BuildOrderFromForm(clientWindow.CreatedClient);
+
+            if (order == null)
+                return;
 
             pendingOrders.Add(order);
             currentOrder = order;
 
-            MessageBox.Show($"Order sent to staff. Pending orders: {pendingOrders.Count}");
+            MessageBox.Show("Order sent to staff. Please go to the desk for payment.");
         }
 
-  
-        
+        private void PendingOrdersGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var selected = PendingOrdersGrid.SelectedItem as PendingOrderDisplay;
+
+            if (selected == null)
+            {
+                ProcessSummaryText.Text = "Select an order to view details.";
+                return;
+            }
+
+            var order = selected.OrderRef;
+            var phone = order.GetPhone();
+            var client = order.GetClient();
+            var contract = order.GetContract();
+
+            ProcessSummaryText.Text =
+                $"Client: {client?.Name}\n" +
+                $"Phone: {phone?.Manufacturer} {phone?.Model} ({phone?.Storage})\n" +
+                $"Quantity: {order.GetQuantity()}\n" +
+                $"Contract: {contract?.GetContractType()}\n" +
+                $"Total Price: £{order.GetTotalAfterDiscount():F2}";
+        }
+
+
         private void UpdateOrderSummary()
         {
             try
@@ -428,9 +363,9 @@ namespace PhoneMaster.GUI
             ProcessOrdersPanel.Visibility = Visibility.Visible;
 
             RefreshPendingOrdersGrid();
-
-            MessageBox.Show($"Orders in list: {pendingOrders.Count}");
+            ProcessSummaryText.Text = "Select an order to view details.";
         }
+
         private void ProcessSelectedOrder_Click(object sender, RoutedEventArgs e)
         {
             var selected = PendingOrdersGrid.SelectedItem as PendingOrderDisplay;
@@ -441,7 +376,26 @@ namespace PhoneMaster.GUI
                 return;
             }
 
+            if (PaymentMethodBox.SelectedItem == null)
+            {
+                MessageBox.Show("Select payment method.");
+                return;
+            }
+
+            string processedBy = ProcessedByBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(processedBy))
+            {
+                MessageBox.Show("Enter staff username.");
+                return;
+            }
+
+            string paymentMethod =
+                ((ComboBoxItem)PaymentMethodBox.SelectedItem).Content.ToString()!;
+
             var order = selected.OrderRef;
+
+            order.SetPaymentMethod(paymentMethod);
+            order.SetProcessedBy(processedBy);
 
             order.UpdateInventory();
             order.RecordClient();
@@ -452,6 +406,10 @@ namespace PhoneMaster.GUI
             pendingOrders.Remove(order);
 
             RefreshPendingOrdersGrid();
+
+            ProcessSummaryText.Text = "Select an order to view details.";
+            ProcessedByBox.Text = "";
+            PaymentMethodBox.SelectedIndex = 0;
 
             MessageBox.Show("Order processed successfully.");
         }
@@ -469,6 +427,7 @@ namespace PhoneMaster.GUI
             pendingOrders.Remove(selected.OrderRef);
 
             RefreshPendingOrdersGrid();
+            ProcessSummaryText.Text = "Select an order to view details.";
         }
 
         private void BackFromProcessOrders_Click(object sender, RoutedEventArgs e)
