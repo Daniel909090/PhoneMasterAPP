@@ -90,10 +90,14 @@ namespace PhoneMaster.Core.Services
             return null;
         }
 
-        public void AddPhone(Phone phone)
+        public bool AddPhone(Phone phone)
         {
+            if (phone.Stock < 0 || phone.Stock > 100)
+                return false;
+
             phones.Add(phone);
             FileHandler.SavePhones(phones);
+            return true;
         }
 
         public bool RemovePhone(string phoneID)
@@ -111,6 +115,9 @@ namespace PhoneMaster.Core.Services
 
         public bool UpdateStock(string phoneID, int newStock)
         {
+            if (newStock < 0 || newStock > 100)
+                return false;
+
             foreach (Phone p in phones)
             {
                 if (p.PhoneID.Equals(phoneID, StringComparison.OrdinalIgnoreCase))

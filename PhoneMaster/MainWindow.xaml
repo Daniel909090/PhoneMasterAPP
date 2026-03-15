@@ -10,7 +10,7 @@
     <Grid>
 
         <!-- WELCOME SCREEN -->
-        <Grid x:Name="WelcomePanel" Visibility="Visible">
+        <Grid x:Name="WelcomePanel" Visibility="Collapsed">
 
             <Grid.Background>
                 <ImageBrush ImageSource="/Assets/logo.png"
@@ -44,7 +44,7 @@
                         VerticalAlignment="Center"
                         Width="300">
 
-                <TextBlock Text="PHONE MASTER"
+                <TextBlock Text="PhoneMASTER"
                            FontSize="26"
                            FontWeight="Bold"
                            HorizontalAlignment="Center"
@@ -77,8 +77,8 @@
             </StackPanel>
         </Grid>
 
-        <!-- PHONES PANEL -->
-        <Grid x:Name="PhonesPanel" Visibility="Collapsed">
+        <!-- 1. VIEW PHONES PANEL -->
+        <Grid x:Name="PhonesPanel" Visibility="Visible">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -126,7 +126,7 @@
                        FontWeight="SemiBold"/>
         </Grid>
 
-        <!-- CREATE ORDER PANEL -->
+        <!-- 2. CREATE ORDER PANEL -->
         <Grid x:Name="CreateOrderPanel" Visibility="Collapsed" Margin="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -146,9 +146,56 @@
                 </Grid.ColumnDefinitions>
 
                 <DataGrid x:Name="CreateOrderPhonesGrid"
-                          AutoGenerateColumns="True"
-                          IsReadOnly="True"
-                          SelectionChanged="OrderInputChanged" Margin="0,0,10,0"/>
+          AutoGenerateColumns="False"
+          IsReadOnly="True"
+          SelectionChanged="OrderInputChanged"
+          Margin="0,0,10,0">
+
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Setter Property="FontWeight" Value="Normal"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#E6F2FF"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
+
+                    <DataGrid.Columns>
+
+                        <DataGridTextColumn Header="Phone ID"
+                            Binding="{Binding PhoneID}"
+                            Width="60"/>
+
+                        <DataGridTextColumn Header="Manufacturer"
+                            Binding="{Binding Manufacturer}"
+                            Width="1.4*"/>
+
+                        <DataGridTextColumn Header="Model"
+                            Binding="{Binding Model}"
+                            Width="2*"/>
+
+                        <DataGridTextColumn Header="Storage"
+                            Binding="{Binding Storage, StringFormat={}{0} GB}"
+                            Width="70"/>
+
+                        <DataGridTextColumn Header="Release Year"
+                            Binding="{Binding ReleaseYear}"
+                            Width="75"/>
+
+                        <DataGridTextColumn Header="Price"
+                            Binding="{Binding Price, StringFormat=£{0:F0}}"
+                            Width="70"/>
+
+                        <DataGridTextColumn Header="Stock"
+                            Binding="{Binding Stock}"
+                            Width="60"/>
+
+                    </DataGrid.Columns>
+
+                </DataGrid>
 
                 <StackPanel Grid.Column="1">
                     <TextBlock Text="Quantity"/>
@@ -173,36 +220,52 @@
                         <ComboBoxItem Content="Hire Contract"/>
                     </ComboBox>
 
-                    <TextBlock Text="Plan Type"/>
+                    <TextBlock x:Name="PlanTypeLabel"
+                               Text="Plan Type"
+                               Visibility="Collapsed"/>
                     <ComboBox x:Name="PlanTypeBox" 
-                              Margin="0,0,0,10"
-                              SelectionChanged="OrderInputChanged">
+                               Margin="0,0,0,10"
+                               Visibility="Collapsed"
+                               SelectionChanged="OrderInputChanged"> 
                         <ComboBoxItem Content="Standard"/>
                         <ComboBoxItem Content="Premium"/>
-
                     </ComboBox>
 
-                    <TextBlock x:Name="DurationLabel" Text="Duration" Visibility="Visible"/>
+                    <TextBlock x:Name="DurationLabel"
+                              Text="Duration"
+                              Visibility="Collapsed"/>
                     <ComboBox x:Name="DurationBox" 
                               Margin="0,0,0,20" 
                               Visibility="Collapsed" 
                               SelectionChanged="OrderInputChanged"/>
-                    <TextBlock Text="Order Summary"
-                             FontWeight="Bold"
-                             />
-                    <Border BorderBrush="Gray"
-                        BorderThickness="1"
-                        Padding="10" Height="148"
-                        >
-                        <StackPanel>
-                            <TextBlock Text="Total Price:" FontWeight="SemiBold"/>
-                            <TextBlock x:Name="TotalPriceText"
-                          Text="£0.00"
-                             Margin="0,0,0,8"/>
 
-                            <TextBlock Text="Monthly Cost:" FontWeight="SemiBold"/>
+                    <!-- Order Summary -->
+                    <Border BorderBrush="Gray"
+                            BorderThickness="1"
+                            Padding="10"
+                            Height="148">       
+                        <StackPanel>
+
+                            <TextBlock Text="Phone Details:"
+                                        FontWeight="SemiBold"/>
+
+                            <TextBlock x:Name="PhoneDetailsText"
+                                       Text="-"
+                                       Margin="0,0,0,10"/>      
+
+                            <TextBlock Text="Total Price:"
+                                       FontWeight="SemiBold"/>
+
+                            <TextBlock x:Name="TotalPriceText"
+                                       Text="£0.00"
+                                       Margin="0,0,0,8"/>
+
+                            <TextBlock Text="Monthly Cost:"
+                                       FontWeight="SemiBold"/>
+
                             <TextBlock x:Name="MonthlyCostText"
-                             Text="£0.00"/>
+                                       Text="£0.00"/>
+
                         </StackPanel>
                     </Border>
 
@@ -226,7 +289,7 @@
             </StackPanel>
         </Grid>
 
-        <!-- PROCESS ORDER PANEL -->
+        <!-- 3. PROCESS ORDER PANEL -->
         <Grid x:Name="ProcessOrdersPanel" Visibility="Collapsed" Margin="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -262,10 +325,10 @@
                       Margin="0,0,0,10">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Client" Binding="{Binding ClientName}" Width="*"/>
-                            <DataGridTextColumn Header="Phone" Binding="{Binding PhoneName}" Width="*"/>
-                            <DataGridTextColumn Header="Quantity" Binding="{Binding Quantity}" Width="100"/>
+                            <DataGridTextColumn Header="Phone" Binding="{Binding PhoneName}" Width="2*"/>
+                            <DataGridTextColumn Header="Quantity" Binding="{Binding Quantity}" Width="60"/>
                             <DataGridTextColumn Header="Contract" Binding="{Binding ContractType}" Width="150"/>
-                            <DataGridTextColumn Header="Total Price" Binding="{Binding TotalPrice, StringFormat=£{0:F2}}" Width="120"/>
+                            <DataGridTextColumn Header="Total Price" Binding="{Binding TotalPrice, StringFormat=£{0:F2}}" Width="70"/>
                         </DataGrid.Columns>
                     </DataGrid>
 
@@ -515,8 +578,8 @@
                 Click="BackFromProcessOrders_Click"/>
             </StackPanel>
         </Grid>
-        
-        <!-- UPDATE INVENTORY PANEL -->
+
+        <!-- 4. UPDATE INVENTORY PANEL -->
         <Grid x:Name="InventoryPanel" Visibility="Collapsed" Margin="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -544,41 +607,43 @@
 
                     <!-- Search bar -->
                     <StackPanel Grid.Row="0"
-                Orientation="Horizontal"
-                Margin="0,0,0,10">
+                        Orientation="Horizontal"
+                        Margin="0,0,0,10">
+                        <TextBlock Text="Search manufacturer or model"
+            Margin="0,0,0,5"/>
                         <TextBox x:Name="InventorySearchBox"
-                 Width="220"
-                 Height="30"
-                 Margin="0,0,10,0"
-                 KeyDown="InventorySearchBox_KeyDown" />
+                         Width="220"
+                         Height="30"
+                         Margin="0,0,10,0"
+                         KeyDown="InventorySearchBox_KeyDown"/>
 
                         <Button Content="Search"
-                Width="100"
-                Height="30"
-                Margin="0,0,10,0"
-                Click="SearchInventory_Click"/>
+                        Width="100"
+                        Height="30"
+                        Margin="0,0,10,0"
+                        Click="SearchInventory_Click"/>
 
                         <Button Content="Show All"
-                Width="100"
-                Height="30"
-                Click="ShowAllInventory_Click"/>
+                        Width="100"
+                        Height="30"
+                        Click="ShowAllInventory_Click"/>
                     </StackPanel>
 
                     <!-- Inventory list -->
                     <DataGrid x:Name="InventoryPhonesGrid"
-              Grid.Row="1"
-              AutoGenerateColumns="False"
-              IsReadOnly="True"
-              SelectionMode="Single"
-              SelectionChanged="InventoryPhonesGrid_SelectionChanged">
+                      Grid.Row="1"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      SelectionMode="Single"
+                      SelectionChanged="InventoryPhonesGrid_SelectionChanged">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Phone ID" Binding="{Binding PhoneID}" Width="50"/>
-                            <DataGridTextColumn Header="Manufacturer" Binding="{Binding Manufacturer}" Width="90"/>
-                            <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="120"/>
-                            <DataGridTextColumn Header="Storage" Binding="{Binding Storage, StringFormat={}{0}GB}" Width="50"/>
-                            <DataGridTextColumn Header="Release Year" Binding="{Binding ReleaseYear}" Width="50"/>
+                            <DataGridTextColumn Header="Phone ID" Binding="{Binding PhoneID}" Width="60"/>
+                            <DataGridTextColumn Header="Manufacturer" Binding="{Binding Manufacturer}" Width="1.4*"/>
+                            <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="2*"/>
+                            <DataGridTextColumn Header="Storage" Binding="{Binding Storage, StringFormat={}{0} GB}" Width="70"/>
+                            <DataGridTextColumn Header="Release Year" Binding="{Binding ReleaseYear}" Width="75"/>
                             <DataGridTextColumn Header="Price" Binding="{Binding Price, StringFormat=£{0:F2}}" Width="70"/>
-                            <DataGridTextColumn Header="Stock" Binding="{Binding Stock}" Width="50"/>
+                            <DataGridTextColumn Header="Stock" Binding="{Binding Stock}" Width="60"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
@@ -609,18 +674,72 @@
                         <TextBlock Text="Model" x:Name="InvModelLabel"/>
                         <TextBox x:Name="InvModelBox" Margin="0,0,0,8"/>
 
-                        <TextBlock Text="Storage" x:Name="InvStorageLabel"/>
-                        <TextBox x:Name="InvStorageBox" Margin="0,0,0,12"/>
+                        <TextBlock Text="Storage (GB)" x:Name="InvStorageLabel"/>
+
+                        <ComboBox x:Name="InvStorageBox"
+                                  Margin="0,0,0,12"
+                                  SelectedIndex="2">                
+
+                            <ComboBoxItem Content="32"/>
+                            <ComboBoxItem Content="64"/>
+                            <ComboBoxItem Content="128"/>
+                            <ComboBoxItem Content="256"/>
+                            <ComboBoxItem Content="512"/>
+                            <ComboBoxItem Content="1024"/>
+                            <ComboBoxItem Content="2048"/>
+                            <ComboBoxItem Content="4096"/>
+
+                        </ComboBox>
 
                         <TextBlock Text="Release Year" x:Name="InvReleaseYearLabel"/>
-                        <TextBox x:Name="InvReleaseYearBox" Margin="0,0,0,8"/>
-                        
-                        <TextBlock Text="Price" x:Name="InvPriceLabel"/>
-                        <TextBox x:Name="InvPriceBox" Margin="0,0,0,8"/>
+                        <TextBox x:Name="InvReleaseYearBox" 
+                                 Margin="0,0,0,8" 
+                                 MaxLength="4"
+                                 PreviewTextInput="NumbersOnly"/>
 
-                        <TextBlock Text="Stock" x:Name="InvStockLabel"/>
-                        <TextBox x:Name="InvStockBox" Margin="0,0,0,8"/>
+                        <!-- Main price field -->
+                        <TextBlock Text="Curent Price" x:Name="InvPriceLabel" Visibility="Collapsed"/>
+                        <TextBox x:Name="InvPriceBox"
+                         Margin="0,0,0,8"
+                         Visibility="Collapsed"
+                         MaxLength="8"
+                         PreviewTextInput="PriceInput"/>
 
+                        <!-- Change price fields -->
+                        <TextBlock Text="Current Price" x:Name="InvCurrentPriceLabel" Visibility="Collapsed"/>
+                        <TextBox x:Name="InvCurrentPriceBox"
+                         Margin="0,0,0,8"
+                         IsReadOnly="True"
+                         Visibility="Collapsed"/>
+
+                        <TextBlock Text="New Price" x:Name="InvNewPriceLabel" Visibility="Collapsed"/>
+                        <TextBox x:Name="InvNewPriceBox"
+                         Margin="0,0,0,8"
+                         Visibility="Collapsed"
+                         MaxLength="7"
+                         PreviewTextInput="PriceInput"/>
+
+                        <!-- Add phone stock -->
+                        <TextBlock Text="Initial Stock" x:Name="InvInitialStockLabel" Visibility="Collapsed"/>
+                        <TextBox x:Name="InvInitialStockBox"
+                         Margin="0,0,0,8"
+                         Visibility="Collapsed"
+                         MaxLength="3"
+                         PreviewTextInput="NumbersOnly"/>
+
+                        <!-- Update stock fields -->
+                        <TextBlock Text="Old Stock" x:Name="InvOldStockLabel" Visibility="Collapsed"/>
+                        <TextBox x:Name="InvOldStockBox"
+                         Margin="0,0,0,8"
+                         IsReadOnly="True"
+                         Visibility="Collapsed"/>
+
+                        <TextBlock Text="New Stock" x:Name="InvNewStockLabel" Visibility="Collapsed"/>
+                        <TextBox x:Name="InvNewStockBox"
+                         Margin="0,0,0,8"
+                         Visibility="Collapsed"
+                         MaxLength="3"
+                         PreviewTextInput="NumbersOnly"/>
 
                         <Button x:Name="InventoryActionButton"
                         Content="Apply"
@@ -629,8 +748,9 @@
                     </StackPanel>
                 </Border>
             </Grid>
+        
 
-            <StackPanel Grid.Row="2"
+        <StackPanel Grid.Row="2"
                 Orientation="Horizontal"
                 HorizontalAlignment="Right"
                 Margin="0,10,0,0">

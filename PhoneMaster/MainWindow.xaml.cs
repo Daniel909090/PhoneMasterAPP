@@ -2,9 +2,11 @@
 using PhoneMaster.Core.Services;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+
 
 namespace PhoneMaster.GUI
 {
@@ -183,9 +185,9 @@ namespace PhoneMaster.GUI
                 ClientName = order.GetClient()?.Name ?? "",
                 PhoneName = order.GetPhone() == null
                     ? ""
-                    : $"{order.GetPhone()!.Manufacturer} {order.GetPhone()!.Model}",
+                    : $"{order.GetPhone()!.Manufacturer} {order.GetPhone()!.Model} {order.GetPhone()!.Storage} GB",
                 Quantity = order.GetQuantity(),
-                ContractType = order.GetContract()?.GetContractType().ToString() ?? "",
+                ContractType = order.GetContract()?.GetName() ?? "",
                 TotalPrice = order.GetTotalAfterDiscount()
             }).ToList();
 
@@ -206,6 +208,12 @@ namespace PhoneMaster.GUI
 
             string contractType = selectedItem.Content?.ToString() ?? "";
 
+            // Reset plan controls
+            PlanTypeLabel.Visibility = Visibility.Collapsed;
+            PlanTypeBox.Visibility = Visibility.Collapsed;
+            PlanTypeBox.SelectedIndex = -1;
+
+            // Reset duration controls
             DurationBox.Items.Clear();
             DurationBox.SelectedIndex = -1;
             DurationLabel.Visibility = Visibility.Collapsed;
@@ -213,25 +221,38 @@ namespace PhoneMaster.GUI
 
             if (contractType == "Phone + SIM Package")
             {
+                PlanTypeLabel.Visibility = Visibility.Visible;
+                PlanTypeBox.Visibility = Visibility.Visible;
+
                 DurationLabel.Text = "Contract Length (Months)";
                 DurationLabel.Visibility = Visibility.Visible;
                 DurationBox.Visibility = Visibility.Visible;
 
                 DurationBox.Items.Add(new ComboBoxItem { Content = "12" });
                 DurationBox.Items.Add(new ComboBoxItem { Content = "24" });
+
+                if (PlanTypeBox.Items.Count > 0)
+                    PlanTypeBox.SelectedIndex = 0;
+
+                DurationBox.SelectedIndex = 0;
             }
             else if (contractType == "Hire Contract")
             {
+                PlanTypeLabel.Visibility = Visibility.Visible;
+                PlanTypeBox.Visibility = Visibility.Visible;
+
                 DurationLabel.Text = "Hire Duration (Years)";
                 DurationLabel.Visibility = Visibility.Visible;
                 DurationBox.Visibility = Visibility.Visible;
 
                 DurationBox.Items.Add(new ComboBoxItem { Content = "1" });
                 DurationBox.Items.Add(new ComboBoxItem { Content = "2" });
-            }
 
-            if (DurationBox.Items.Count > 0)
+                if (PlanTypeBox.Items.Count > 0)
+                    PlanTypeBox.SelectedIndex = 0;
+
                 DurationBox.SelectedIndex = 0;
+            }
 
             UpdateOrderSummary();
         }
@@ -288,7 +309,7 @@ namespace PhoneMaster.GUI
 
         private void PendingOrdersGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (PendingOrdersGrid.SelectedItem == null)
+            if (PendingOrdersGrid.SelectedItem is not PendingOrderDisplay selectedOrder)
             {
                 ProcessSummaryText.Text = "Select an order to view details.";
                 selectedOrderBasePrice = 0.0;
@@ -296,14 +317,36 @@ namespace PhoneMaster.GUI
                 return;
             }
 
-            dynamic selectedOrder = PendingOrdersGrid.SelectedItem;
+            var order = selectedOrder.OrderRef;
+            var phone = order.GetPhone();
+            var contract = order.GetContract();
+
+            string phoneDetails = phone == null
+                ? "-"
+                : $"{phone.Manufacturer} {phone.Model} {phone.Storage}GB - £{phone.Price:F2}";
+
+            string planTypeText = "-";
+            string durationText = "-";
+
+            if (contract is PhoneSimPackage package)
+            {
+                planTypeText = package.PlanType == PlanType.STANDARD ? "Standard" : "Premium";
+                durationText = $"{package.Months} months";
+            }
+            else if (contract is HireContract hire)
+            {
+                planTypeText = hire.PlanType == PlanType.STANDARD ? "Standard" : "Premium";
+                durationText = $"{hire.Years} years";
+            }
 
             ProcessSummaryText.Text =
                 $"Client: {selectedOrder.ClientName}\n" +
-                $"Phone: {selectedOrder.PhoneName}\n" +
+                $"Phone Details: {phoneDetails}\n" +
                 $"Quantity: {selectedOrder.Quantity}\n" +
                 $"Contract: {selectedOrder.ContractType}\n" +
-                $"Total Price: £{selectedOrder.TotalPrice:F2}";
+                $"Plan Type: {planTypeText}\n" +
+                $"Duration: {durationText}\n" +
+                $"Total Contract Price: £{selectedOrder.TotalPrice:F2}";
 
             selectedOrderBasePrice = selectedOrder.TotalPrice;
 
@@ -412,6 +455,7 @@ namespace PhoneMaster.GUI
             {
                 if (CreateOrderPhonesGrid.SelectedItem == null)
                 {
+                    PhoneDetailsText.Text = "-";
                     TotalPriceText.Text = "£0.00";
                     MonthlyCostText.Text = "£0.00";
                     return;
@@ -425,6 +469,8 @@ namespace PhoneMaster.GUI
                 }
 
                 Phone phone = (Phone)CreateOrderPhonesGrid.SelectedItem;
+                PhoneDetailsText.Text = $"{phone.Manufacturer} {phone.Model} {phone.Storage}GB - £{phone.Price:F2}";
+
 
                 if (ContractTypeBox.SelectedItem == null)
                 {
@@ -606,7 +652,7 @@ namespace PhoneMaster.GUI
             InvStorageBox.Text = selectedPhone.Storage.ToString();
             InvReleaseYearBox.Text = selectedPhone.ReleaseYear.ToString();
             InvPriceBox.Text = selectedPhone.Price.ToString("F2");
-            InvStockBox.Text = selectedPhone.Stock.ToString();
+            InvOldStockBox.Text = selectedPhone.Stock.ToString();
         }
 
         private void SearchInventory_Click(object sender, RoutedEventArgs e)
@@ -635,6 +681,36 @@ namespace PhoneMaster.GUI
             InventorySearchBox.Text = "";
             LoadInventoryPhones();
         }
+        private void ClearAddPhoneFields()
+        {
+            InvManufacturerBox.Text = "";
+            InvModelBox.Text = "";
+            InvStorageBox.Text = "";
+            InvReleaseYearBox.Text = "";
+            InvPriceBox.Text = "";
+            InvInitialStockBox.Text = "";
+
+            InvNewPriceBox.Text = "";
+            InvCurrentPriceBox.Text = "";
+            InvOldStockBox.Text = "";
+            InvNewStockBox.Text = "";
+        }
+        private void NumbersOnly(object sender, TextCompositionEventArgs e)
+        {
+            Regex regex = new Regex("[^0-9]+");
+            e.Handled = regex.IsMatch(e.Text);
+        }
+
+        private void PriceInput(object sender, TextCompositionEventArgs e)
+        {
+            Regex regex = new Regex(@"^\d{0,5}(\.\d{0,2})?$");
+
+            TextBox textBox = sender as TextBox;
+
+            string newText = textBox.Text.Insert(textBox.SelectionStart, e.Text);
+
+            e.Handled = !regex.IsMatch(newText);
+        }
 
         private void InventoryActionBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -643,79 +719,91 @@ namespace PhoneMaster.GUI
 
             string action = selectedItem.Content?.ToString() ?? "";
 
-            // Default all visible
-            InvManufacturerLabel.Visibility = Visibility.Visible;
-            InvManufacturerBox.Visibility = Visibility.Visible;
-            InvModelLabel.Visibility = Visibility.Visible;
-            InvModelBox.Visibility = Visibility.Visible;
-            InvPriceLabel.Visibility = Visibility.Visible;
-            InvPriceBox.Visibility = Visibility.Visible;
-            InvStockLabel.Visibility = Visibility.Visible;
-            InvStockBox.Visibility = Visibility.Visible;
-            InvReleaseYearLabel.Visibility = Visibility.Visible;
-            InvReleaseYearBox.Visibility = Visibility.Visible;
-            InvStorageLabel.Visibility = Visibility.Visible;
-            InvStorageBox.Visibility = Visibility.Visible;
+            InvManufacturerLabel.Visibility = Visibility.Collapsed;
+            InvManufacturerBox.Visibility = Visibility.Collapsed;
 
+            InvModelLabel.Visibility = Visibility.Collapsed;
+            InvModelBox.Visibility = Visibility.Collapsed;
+
+            InvStorageLabel.Visibility = Visibility.Collapsed;
+            InvStorageBox.Visibility = Visibility.Collapsed;
+
+            InvReleaseYearLabel.Visibility = Visibility.Collapsed;
+            InvReleaseYearBox.Visibility = Visibility.Collapsed;
+
+            InvPriceLabel.Visibility = Visibility.Collapsed;
+            InvPriceBox.Visibility = Visibility.Collapsed;
+
+            InvInitialStockLabel.Visibility = Visibility.Collapsed;
+            InvInitialStockBox.Visibility = Visibility.Collapsed;
+
+            InvOldStockLabel.Visibility = Visibility.Collapsed;
+            InvOldStockBox.Visibility = Visibility.Collapsed;
+
+            InvNewStockLabel.Visibility = Visibility.Collapsed;
+            InvNewStockBox.Visibility = Visibility.Collapsed;
+
+            InvNewPriceLabel.Visibility = Visibility.Collapsed;
+            InvNewPriceBox.Visibility = Visibility.Collapsed;
+
+            // Add Phone
             if (action == "Add Phone")
             {
+                ClearAddPhoneFields();
+                InventoryPhonesGrid.SelectedItem = null;
+
                 InventoryActionButton.Content = "Add Phone";
 
-                InvManufacturerBox.Text = "";
-                InvModelBox.Text = "";
-                InvPriceBox.Text = "";
-                InvStockBox.Text = "";
-                InvReleaseYearBox.Text = "";
-                InvStorageBox.Text = "";
+                InvManufacturerLabel.Visibility = Visibility.Visible;
+                InvManufacturerBox.Visibility = Visibility.Visible;
+
+                InvModelLabel.Visibility = Visibility.Visible;
+                InvModelBox.Visibility = Visibility.Visible;
+
+                InvStorageLabel.Visibility = Visibility.Visible;
+                InvStorageBox.Visibility = Visibility.Visible;
+
+                InvReleaseYearLabel.Visibility = Visibility.Visible;
+                InvReleaseYearBox.Visibility = Visibility.Visible;
+
+                InvPriceLabel.Visibility = Visibility.Visible;
+                InvPriceBox.Visibility = Visibility.Visible;
+                InvPriceBox.IsReadOnly = false;
+
+                InvInitialStockLabel.Visibility = Visibility.Visible;
+                InvInitialStockBox.Visibility = Visibility.Visible;
             }
             else if (action == "Remove Phone")
             {
                 InventoryActionButton.Content = "Remove Phone";
-
-                InvManufacturerLabel.Visibility = Visibility.Collapsed;
-                InvManufacturerBox.Visibility = Visibility.Collapsed;
-                InvModelLabel.Visibility = Visibility.Collapsed;
-                InvModelBox.Visibility = Visibility.Collapsed;
-                InvPriceLabel.Visibility = Visibility.Collapsed;
-                InvPriceBox.Visibility = Visibility.Collapsed;
-                InvStockLabel.Visibility = Visibility.Collapsed;
-                InvStockBox.Visibility = Visibility.Collapsed;
-                InvReleaseYearLabel.Visibility = Visibility.Collapsed;
-                InvReleaseYearBox.Visibility = Visibility.Collapsed;
-                InvStorageLabel.Visibility = Visibility.Collapsed;
-                InvStorageBox.Visibility = Visibility.Collapsed;
             }
             else if (action == "Update Stock")
             {
                 InventoryActionButton.Content = "Update Stock";
 
-                InvManufacturerLabel.Visibility = Visibility.Collapsed;
-                InvManufacturerBox.Visibility = Visibility.Collapsed;
-                InvModelLabel.Visibility = Visibility.Collapsed;
-                InvModelBox.Visibility = Visibility.Collapsed;
-                InvPriceLabel.Visibility = Visibility.Collapsed;
-                InvPriceBox.Visibility = Visibility.Collapsed;
-                InvReleaseYearLabel.Visibility = Visibility.Collapsed;
-                InvReleaseYearBox.Visibility = Visibility.Collapsed;
-                InvStorageLabel.Visibility = Visibility.Collapsed;
-                InvStorageBox.Visibility = Visibility.Collapsed;
+                InvOldStockLabel.Visibility = Visibility.Visible;
+                InvOldStockBox.Visibility = Visibility.Visible;
+
+                InvNewStockLabel.Visibility = Visibility.Visible;
+                InvNewStockBox.Visibility = Visibility.Visible;
+
+                InvNewStockBox.Text = "";
             }
             else if (action == "Change Price")
             {
                 InventoryActionButton.Content = "Change Price";
 
-                InvManufacturerLabel.Visibility = Visibility.Collapsed;
-                InvManufacturerBox.Visibility = Visibility.Collapsed;
-                InvModelLabel.Visibility = Visibility.Collapsed;
-                InvModelBox.Visibility = Visibility.Collapsed;
-                InvStockLabel.Visibility = Visibility.Collapsed;
-                InvStockBox.Visibility = Visibility.Collapsed;
-                InvReleaseYearLabel.Visibility = Visibility.Collapsed;
-                InvReleaseYearBox.Visibility = Visibility.Collapsed;
-                InvStorageLabel.Visibility = Visibility.Collapsed;
-                InvStorageBox.Visibility = Visibility.Collapsed;
+                InvPriceLabel.Visibility = Visibility.Visible;
+                InvPriceBox.Visibility = Visibility.Visible;
+                InvPriceBox.IsReadOnly = true;
+
+                InvNewPriceLabel.Visibility = Visibility.Visible;
+                InvNewPriceBox.Visibility = Visibility.Visible;
+
+                InvNewPriceBox.Text = "";
             }
         }
+
         private void InventoryActionButton_Click(object sender, RoutedEventArgs e)
         {
             if (InventoryActionBox.SelectedItem is not ComboBoxItem selectedItem)
@@ -726,11 +814,11 @@ namespace PhoneMaster.GUI
 
             string action = selectedItem.Content?.ToString() ?? "";
 
+            // Add Phone
             if (action == "Add Phone")
             {
                 string manufacturer = InvManufacturerBox.Text.Trim();
                 string model = InvModelBox.Text.Trim();
-
 
                 if (string.IsNullOrWhiteSpace(manufacturer))
                 {
@@ -744,11 +832,14 @@ namespace PhoneMaster.GUI
                     return;
                 }
 
-                if (!int.TryParse(InvStorageBox.Text, out int storage) || storage <= 0)
+                // STORAGE COMBOBOX LOGIC HERE
+                if (InvStorageBox.SelectedItem is not ComboBoxItem storageItem)
                 {
-                    MessageBox.Show("Enter a valid storage capacity.");
+                    MessageBox.Show("Select storage capacity.");
                     return;
                 }
+
+                int storage = int.Parse(storageItem.Content.ToString());
 
                 if (!int.TryParse(InvReleaseYearBox.Text, out int releaseYear) || releaseYear <= 1990)
                 {
@@ -762,9 +853,9 @@ namespace PhoneMaster.GUI
                     return;
                 }
 
-                if (!int.TryParse(InvStockBox.Text, out int stock) || stock < 0)
+                if (!int.TryParse(InvInitialStockBox.Text, out int stock) || stock < 0 || stock > 100)
                 {
-                    MessageBox.Show("Enter a valid initial stock.");
+                    MessageBox.Show("Initial stock must be between 0 and 100.");
                     return;
                 }
 
@@ -780,19 +871,29 @@ namespace PhoneMaster.GUI
                     stock
                 );
 
-                inventory.AddPhone(newPhone);
+                bool added = inventory.AddPhone(newPhone);
+
+                if (!added)
+                {
+                    MessageBox.Show("Stock must be between 0 and 100.");
+                    return;
+                }
 
                 LoadInventoryPhones();
 
                 InvManufacturerBox.Text = "";
                 InvModelBox.Text = "";
-                InvStorageBox.Text = "";
+                InvStorageBox.SelectedIndex = -1;
                 InvReleaseYearBox.Text = "";
                 InvPriceBox.Text = "";
-                InvStockBox.Text = "";
+                InvInitialStockBox.Text = "";
+                InvOldStockBox.Text = "";
+                InvNewStockBox.Text = "";
 
                 MessageBox.Show("Phone added successfully.");
             }
+
+            // Remove Phone
             else if (action == "Remove Phone")
             {
                 if (InventoryPhonesGrid.SelectedItem is not Phone selectedPhone)
@@ -800,6 +901,17 @@ namespace PhoneMaster.GUI
                     MessageBox.Show("Select a phone to remove.");
                     return;
                 }
+
+                string phoneName = $"{selectedPhone.Manufacturer} {selectedPhone.Model} {selectedPhone.Storage}GB";
+
+                MessageBoxResult result = MessageBox.Show(
+                    $"Are you sure you want to delete this phone?\n\n{phoneName}",
+                    "Confirm Delete",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (result != MessageBoxResult.Yes)
+                    return;
 
                 bool removed = inventory.RemovePhone(selectedPhone.PhoneID);
 
@@ -812,6 +924,8 @@ namespace PhoneMaster.GUI
                 LoadInventoryPhones();
                 MessageBox.Show("Phone removed successfully.");
             }
+
+            // Update Stock
             else if (action == "Update Stock")
             {
                 if (InventoryPhonesGrid.SelectedItem is not Phone selectedPhone)
@@ -820,9 +934,9 @@ namespace PhoneMaster.GUI
                     return;
                 }
 
-                if (!int.TryParse(InvStockBox.Text, out int newStock) || newStock < 0)
+                if (!int.TryParse(InvNewStockBox.Text, out int newStock))
                 {
-                    MessageBox.Show("Enter a valid stock value.");
+                    MessageBox.Show("Enter a valid stock number.");
                     return;
                 }
 
@@ -830,13 +944,15 @@ namespace PhoneMaster.GUI
 
                 if (!updated)
                 {
-                    MessageBox.Show("Stock could not be updated.");
+                    MessageBox.Show("Stock must be between 0 and 100.");
                     return;
                 }
 
                 LoadInventoryPhones();
                 MessageBox.Show("Stock updated successfully.");
             }
+
+            // Change Price
             else if (action == "Change Price")
             {
                 if (InventoryPhonesGrid.SelectedItem is not Phone selectedPhone)
@@ -845,7 +961,7 @@ namespace PhoneMaster.GUI
                     return;
                 }
 
-                if (!double.TryParse(InvPriceBox.Text, out double newPrice) || newPrice < 0)
+                if (!double.TryParse(InvNewPriceBox.Text, out double newPrice) || newPrice <= 0)
                 {
                     MessageBox.Show("Enter a valid price.");
                     return;
@@ -863,7 +979,7 @@ namespace PhoneMaster.GUI
                 MessageBox.Show("Price changed successfully.");
             }
         }
-        
+
         private void BackFromInventory_Click(object sender, RoutedEventArgs e)
         {
             InventoryPanel.Visibility = Visibility.Collapsed;
