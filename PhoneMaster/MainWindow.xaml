@@ -97,13 +97,15 @@
 
                 <StackPanel Orientation="Horizontal">
                     <TextBox x:Name="SearchBox"
-                             Width="250"
-                             Height="28"
-                             Margin="0,0,10,0"/>
+                             Width="220"
+                             Height="30"
+                             Margin="0,0,10,0"
+                             KeyDown="SearchBox_KeyDown"/>
 
                     <Button Content="Search"
                             Width="100"
-                            Click="SearchPhone_Click"/>
+                            Click="SearchPhone_Click"
+                            />
 
                     <Button Content="Back"
                             Width="100"
@@ -513,6 +515,130 @@
                 Click="BackFromProcessOrders_Click"/>
             </StackPanel>
         </Grid>
+        
+        <!-- UPDATE INVENTORY PANEL -->
+        <Grid x:Name="InventoryPanel" Visibility="Collapsed" Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
+            <TextBlock Text="Update Inventory"
+               FontSize="24"
+               FontWeight="Bold"
+               Margin="0,0,0,10"/>
+
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="1.3*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- LEFT: Phone List -->
+                <Grid Grid.Column="0" Margin="0,0,10,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Search bar -->
+                    <StackPanel Grid.Row="0"
+                Orientation="Horizontal"
+                Margin="0,0,0,10">
+                        <TextBox x:Name="InventorySearchBox"
+                 Width="220"
+                 Height="30"
+                 Margin="0,0,10,0"
+                 KeyDown="InventorySearchBox_KeyDown" />
+
+                        <Button Content="Search"
+                Width="100"
+                Height="30"
+                Margin="0,0,10,0"
+                Click="SearchInventory_Click"/>
+
+                        <Button Content="Show All"
+                Width="100"
+                Height="30"
+                Click="ShowAllInventory_Click"/>
+                    </StackPanel>
+
+                    <!-- Inventory list -->
+                    <DataGrid x:Name="InventoryPhonesGrid"
+              Grid.Row="1"
+              AutoGenerateColumns="False"
+              IsReadOnly="True"
+              SelectionMode="Single"
+              SelectionChanged="InventoryPhonesGrid_SelectionChanged">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Phone ID" Binding="{Binding PhoneID}" Width="50"/>
+                            <DataGridTextColumn Header="Manufacturer" Binding="{Binding Manufacturer}" Width="90"/>
+                            <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="120"/>
+                            <DataGridTextColumn Header="Storage" Binding="{Binding Storage, StringFormat={}{0}GB}" Width="50"/>
+                            <DataGridTextColumn Header="Release Year" Binding="{Binding ReleaseYear}" Width="50"/>
+                            <DataGridTextColumn Header="Price" Binding="{Binding Price, StringFormat=£{0:F2}}" Width="70"/>
+                            <DataGridTextColumn Header="Stock" Binding="{Binding Stock}" Width="50"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+
+                <!-- RIGHT: Action Panel -->
+                <Border Grid.Column="1"
+                BorderBrush="Gray"
+                BorderThickness="1"
+                Padding="10">
+                    <StackPanel>
+                        <TextBlock Text="Inventory Action"
+                           FontWeight="Bold"
+                           Margin="0,0,0,10"/>
+
+                        <TextBlock Text="Choose Action"/>
+                        <ComboBox x:Name="InventoryActionBox"
+                          SelectionChanged="InventoryActionBox_SelectionChanged"
+                          Margin="0,0,0,12">
+                            <ComboBoxItem Content="Add Phone"/>
+                            <ComboBoxItem Content="Remove Phone"/>
+                            <ComboBoxItem Content="Update Stock"/>
+                            <ComboBoxItem Content="Change Price"/>
+                        </ComboBox>
+
+                        <TextBlock Text="Manufacturer" x:Name="InvManufacturerLabel"/>
+                        <TextBox x:Name="InvManufacturerBox" Margin="0,0,0,8"/>
+
+                        <TextBlock Text="Model" x:Name="InvModelLabel"/>
+                        <TextBox x:Name="InvModelBox" Margin="0,0,0,8"/>
+
+                        <TextBlock Text="Storage" x:Name="InvStorageLabel"/>
+                        <TextBox x:Name="InvStorageBox" Margin="0,0,0,12"/>
+
+                        <TextBlock Text="Release Year" x:Name="InvReleaseYearLabel"/>
+                        <TextBox x:Name="InvReleaseYearBox" Margin="0,0,0,8"/>
+                        
+                        <TextBlock Text="Price" x:Name="InvPriceLabel"/>
+                        <TextBox x:Name="InvPriceBox" Margin="0,0,0,8"/>
+
+                        <TextBlock Text="Stock" x:Name="InvStockLabel"/>
+                        <TextBox x:Name="InvStockBox" Margin="0,0,0,8"/>
+
+
+                        <Button x:Name="InventoryActionButton"
+                        Content="Apply"
+                        Height="35"
+                        Click="InventoryActionButton_Click"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <StackPanel Grid.Row="2"
+                Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                Margin="0,10,0,0">
+                <Button Content="Back"
+                Width="100"
+                Margin="5"
+                Click="BackFromInventory_Click"/>
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>

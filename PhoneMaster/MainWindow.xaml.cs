@@ -1,9 +1,10 @@
 ﻿using PhoneMaster.Core.Models;
 using PhoneMaster.Core.Services;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Linq;
+using System.Windows.Input;
 
 namespace PhoneMaster.GUI
 {
@@ -578,13 +579,297 @@ namespace PhoneMaster.GUI
         }
         private void Inventory_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Update Inventory screen");
-        }
+            MenuPanel.Visibility = Visibility.Collapsed;
+            InventoryPanel.Visibility = Visibility.Visible;
 
+            LoadInventoryPhones();
+            InventoryActionBox.SelectedIndex = 0;
+        }
+        private void LoadInventoryPhones()
+        {
+            InventoryPhonesGrid.ItemsSource = null;
+            InventoryPhonesGrid.ItemsSource = inventory.GetPhones();
+        }
         private void Transactions_Click(object sender, RoutedEventArgs e)
         {
             MessageBox.Show("View Transactions screen");
         }
+
+        // PANEL 4 - UPDATE INVENTORY PANEL BASED ON SELECTION AND ACTION
+        private void InventoryPhonesGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (InventoryPhonesGrid.SelectedItem is not Phone selectedPhone)
+                return;
+
+            InvManufacturerBox.Text = selectedPhone.Manufacturer;
+            InvModelBox.Text = selectedPhone.Model;
+            InvStorageBox.Text = selectedPhone.Storage.ToString();
+            InvReleaseYearBox.Text = selectedPhone.ReleaseYear.ToString();
+            InvPriceBox.Text = selectedPhone.Price.ToString("F2");
+            InvStockBox.Text = selectedPhone.Stock.ToString();
+        }
+
+        private void SearchInventory_Click(object sender, RoutedEventArgs e)
+        {
+            string keyword = InventorySearchBox.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(keyword))
+            {
+                MessageBox.Show("Enter a manufacturer or model to search.");
+                return;
+            }
+
+            var results = inventory.SearchPhone(keyword);
+
+            InventoryPhonesGrid.ItemsSource = null;
+            InventoryPhonesGrid.ItemsSource = results;
+
+            if (results.Count == 0)
+            {
+                MessageBox.Show("No phones found.");
+            }
+        }
+
+        private void ShowAllInventory_Click(object sender, RoutedEventArgs e)
+        {
+            InventorySearchBox.Text = "";
+            LoadInventoryPhones();
+        }
+
+        private void InventoryActionBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (InventoryActionBox.SelectedItem is not ComboBoxItem selectedItem)
+                return;
+
+            string action = selectedItem.Content?.ToString() ?? "";
+
+            // Default all visible
+            InvManufacturerLabel.Visibility = Visibility.Visible;
+            InvManufacturerBox.Visibility = Visibility.Visible;
+            InvModelLabel.Visibility = Visibility.Visible;
+            InvModelBox.Visibility = Visibility.Visible;
+            InvPriceLabel.Visibility = Visibility.Visible;
+            InvPriceBox.Visibility = Visibility.Visible;
+            InvStockLabel.Visibility = Visibility.Visible;
+            InvStockBox.Visibility = Visibility.Visible;
+            InvReleaseYearLabel.Visibility = Visibility.Visible;
+            InvReleaseYearBox.Visibility = Visibility.Visible;
+            InvStorageLabel.Visibility = Visibility.Visible;
+            InvStorageBox.Visibility = Visibility.Visible;
+
+            if (action == "Add Phone")
+            {
+                InventoryActionButton.Content = "Add Phone";
+
+                InvManufacturerBox.Text = "";
+                InvModelBox.Text = "";
+                InvPriceBox.Text = "";
+                InvStockBox.Text = "";
+                InvReleaseYearBox.Text = "";
+                InvStorageBox.Text = "";
+            }
+            else if (action == "Remove Phone")
+            {
+                InventoryActionButton.Content = "Remove Phone";
+
+                InvManufacturerLabel.Visibility = Visibility.Collapsed;
+                InvManufacturerBox.Visibility = Visibility.Collapsed;
+                InvModelLabel.Visibility = Visibility.Collapsed;
+                InvModelBox.Visibility = Visibility.Collapsed;
+                InvPriceLabel.Visibility = Visibility.Collapsed;
+                InvPriceBox.Visibility = Visibility.Collapsed;
+                InvStockLabel.Visibility = Visibility.Collapsed;
+                InvStockBox.Visibility = Visibility.Collapsed;
+                InvReleaseYearLabel.Visibility = Visibility.Collapsed;
+                InvReleaseYearBox.Visibility = Visibility.Collapsed;
+                InvStorageLabel.Visibility = Visibility.Collapsed;
+                InvStorageBox.Visibility = Visibility.Collapsed;
+            }
+            else if (action == "Update Stock")
+            {
+                InventoryActionButton.Content = "Update Stock";
+
+                InvManufacturerLabel.Visibility = Visibility.Collapsed;
+                InvManufacturerBox.Visibility = Visibility.Collapsed;
+                InvModelLabel.Visibility = Visibility.Collapsed;
+                InvModelBox.Visibility = Visibility.Collapsed;
+                InvPriceLabel.Visibility = Visibility.Collapsed;
+                InvPriceBox.Visibility = Visibility.Collapsed;
+                InvReleaseYearLabel.Visibility = Visibility.Collapsed;
+                InvReleaseYearBox.Visibility = Visibility.Collapsed;
+                InvStorageLabel.Visibility = Visibility.Collapsed;
+                InvStorageBox.Visibility = Visibility.Collapsed;
+            }
+            else if (action == "Change Price")
+            {
+                InventoryActionButton.Content = "Change Price";
+
+                InvManufacturerLabel.Visibility = Visibility.Collapsed;
+                InvManufacturerBox.Visibility = Visibility.Collapsed;
+                InvModelLabel.Visibility = Visibility.Collapsed;
+                InvModelBox.Visibility = Visibility.Collapsed;
+                InvStockLabel.Visibility = Visibility.Collapsed;
+                InvStockBox.Visibility = Visibility.Collapsed;
+                InvReleaseYearLabel.Visibility = Visibility.Collapsed;
+                InvReleaseYearBox.Visibility = Visibility.Collapsed;
+                InvStorageLabel.Visibility = Visibility.Collapsed;
+                InvStorageBox.Visibility = Visibility.Collapsed;
+            }
+        }
+        private void InventoryActionButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (InventoryActionBox.SelectedItem is not ComboBoxItem selectedItem)
+            {
+                MessageBox.Show("Select an inventory action.");
+                return;
+            }
+
+            string action = selectedItem.Content?.ToString() ?? "";
+
+            if (action == "Add Phone")
+            {
+                string manufacturer = InvManufacturerBox.Text.Trim();
+                string model = InvModelBox.Text.Trim();
+
+
+                if (string.IsNullOrWhiteSpace(manufacturer))
+                {
+                    MessageBox.Show("Enter phone manufacturer.");
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(model))
+                {
+                    MessageBox.Show("Enter phone model.");
+                    return;
+                }
+
+                if (!int.TryParse(InvStorageBox.Text, out int storage) || storage <= 0)
+                {
+                    MessageBox.Show("Enter a valid storage capacity.");
+                    return;
+                }
+
+                if (!int.TryParse(InvReleaseYearBox.Text, out int releaseYear) || releaseYear <= 1990)
+                {
+                    MessageBox.Show("Enter a valid release year.");
+                    return;
+                }
+
+                if (!double.TryParse(InvPriceBox.Text, out double price) || price < 0)
+                {
+                    MessageBox.Show("Enter a valid phone price.");
+                    return;
+                }
+
+                if (!int.TryParse(InvStockBox.Text, out int stock) || stock < 0)
+                {
+                    MessageBox.Show("Enter a valid initial stock.");
+                    return;
+                }
+
+                string newPhoneId = inventory.GenerateNextPhoneID();
+
+                Phone newPhone = new Phone(
+                    newPhoneId,
+                    manufacturer,
+                    model,
+                    storage,
+                    releaseYear,
+                    price,
+                    stock
+                );
+
+                inventory.AddPhone(newPhone);
+
+                LoadInventoryPhones();
+
+                InvManufacturerBox.Text = "";
+                InvModelBox.Text = "";
+                InvStorageBox.Text = "";
+                InvReleaseYearBox.Text = "";
+                InvPriceBox.Text = "";
+                InvStockBox.Text = "";
+
+                MessageBox.Show("Phone added successfully.");
+            }
+            else if (action == "Remove Phone")
+            {
+                if (InventoryPhonesGrid.SelectedItem is not Phone selectedPhone)
+                {
+                    MessageBox.Show("Select a phone to remove.");
+                    return;
+                }
+
+                bool removed = inventory.RemovePhone(selectedPhone.PhoneID);
+
+                if (!removed)
+                {
+                    MessageBox.Show("Phone could not be removed.");
+                    return;
+                }
+
+                LoadInventoryPhones();
+                MessageBox.Show("Phone removed successfully.");
+            }
+            else if (action == "Update Stock")
+            {
+                if (InventoryPhonesGrid.SelectedItem is not Phone selectedPhone)
+                {
+                    MessageBox.Show("Select a phone to update stock.");
+                    return;
+                }
+
+                if (!int.TryParse(InvStockBox.Text, out int newStock) || newStock < 0)
+                {
+                    MessageBox.Show("Enter a valid stock value.");
+                    return;
+                }
+
+                bool updated = inventory.UpdateStock(selectedPhone.PhoneID, newStock);
+
+                if (!updated)
+                {
+                    MessageBox.Show("Stock could not be updated.");
+                    return;
+                }
+
+                LoadInventoryPhones();
+                MessageBox.Show("Stock updated successfully.");
+            }
+            else if (action == "Change Price")
+            {
+                if (InventoryPhonesGrid.SelectedItem is not Phone selectedPhone)
+                {
+                    MessageBox.Show("Select a phone to change price.");
+                    return;
+                }
+
+                if (!double.TryParse(InvPriceBox.Text, out double newPrice) || newPrice < 0)
+                {
+                    MessageBox.Show("Enter a valid price.");
+                    return;
+                }
+
+                bool updated = inventory.ChangePrice(selectedPhone.PhoneID, newPrice);
+
+                if (!updated)
+                {
+                    MessageBox.Show("Price could not be changed.");
+                    return;
+                }
+
+                LoadInventoryPhones();
+                MessageBox.Show("Price changed successfully.");
+            }
+        }
+        
+        private void BackFromInventory_Click(object sender, RoutedEventArgs e)
+        {
+            InventoryPanel.Visibility = Visibility.Collapsed;
+            MenuPanel.Visibility = Visibility.Visible;
+        }
+
 
         private void SearchPhone_Click(object sender, RoutedEventArgs e)
         {
@@ -600,10 +885,29 @@ namespace PhoneMaster.GUI
             PhonesGrid.ItemsSource = inventory.SearchPhone(keyword);
         }
 
+     
+
         private void BackToMenu_Click(object sender, RoutedEventArgs e)
         {
             PhonesPanel.Visibility = Visibility.Collapsed;
             MenuPanel.Visibility = Visibility.Visible;
+        }
+
+        // Helpers 
+        private void TriggerButtonOnEnter(System.Windows.Input.KeyEventArgs e, RoutedEventHandler action)
+        {
+            if (e.Key == System.Windows.Input.Key.Enter)
+                action.Invoke(this, new RoutedEventArgs());
+        }
+
+        private void SearchBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            TriggerButtonOnEnter(e, SearchPhone_Click);
+        }
+
+        private void InventorySearchBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            TriggerButtonOnEnter(e, SearchInventory_Click);
         }
     }
 }

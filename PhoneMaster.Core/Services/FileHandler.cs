@@ -41,7 +41,7 @@ namespace PhoneMaster.Core.Services
                         string phoneID = parts[0].Trim();
                         string manufacturer = parts[1].Trim();
                         string model = parts[2].Trim();
-                        string storage = parts[3].Trim();
+                        int storage = int.Parse(parts[3].Trim());
                         int releaseYear = int.Parse(parts[4].Trim());
                         double price = double.Parse(parts[5].Trim());
                         int stock = int.Parse(parts[6].Trim());
