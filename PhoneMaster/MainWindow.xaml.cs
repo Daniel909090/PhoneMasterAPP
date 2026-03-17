@@ -1,7 +1,5 @@
 ﻿using PhoneMaster.Core.Models;
 using PhoneMaster.Core.Services;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
@@ -10,12 +8,50 @@ using System.Windows.Input;
 
 namespace PhoneMaster.GUI
 {
+
+    public class TransactionDisplay
+    {
+        public string OrderID { get; set; } = "";
+        public string Date { get; set; } = "";
+        public string Client { get; set; } = "";
+        public string PhoneID { get; set; } = "";
+        public string Phone { get; set; } = "";
+        public int Quantity { get; set; }
+        public string Contract { get; set; } = "";
+        public double Subtotal { get; set; }
+        public double DiscountPercent { get; set; }
+        public double DiscountAmount { get; set; }
+        public double TotalPaid { get; set; }
+        public string Payment { get; set; } = "";
+        public string ProcessedBy { get; set; } = "";
+    }
+
+    public class ClientDisplay
+    {
+        public string ClientType { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string VAT { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string ContactPhone { get; set; } = "";
+        public string Address { get; set; } = "";
+    }
+
+    public class InventoryLogDisplay
+    {
+        public string Timestamp { get; set; } = "";
+        public string PerformedBy { get; set; } = "";
+        public string Action { get; set; } = "";
+        public string Phone { get; set; } = "";
+        public string Details { get; set; } = "";
+    }
     public partial class MainWindow : Window
     {
         private Inventory inventory = new Inventory();
-        
+        private Staff? currentUser;
         private PhoneMaster.Core.Services.Order? currentOrder;
         private List<PhoneMaster.Core.Services.Order> pendingOrders = new List<PhoneMaster.Core.Services.Order>();
+        private double selectedOrderBasePrice = 0.0;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -24,8 +60,7 @@ namespace PhoneMaster.GUI
             ApplyDiscountBox.SelectedIndex = 0;
             PaymentMethodBox.SelectedIndex = 0;
         }
-        private double selectedOrderBasePrice = 0.0;
-
+       
         private void LoadPhones()
         {
             PhonesGrid.ItemsSource = null;
@@ -145,8 +180,13 @@ namespace PhoneMaster.GUI
             return order;
         }
 
+        private void ShowAllPhones_Click(object sender, RoutedEventArgs e)
+        {
+            SearchBox.Text = "";
+            LoadPhones();
+        }
 
-       
+
 
         private void StartButton_Click(object sender, RoutedEventArgs e)
         {
@@ -169,14 +209,14 @@ namespace PhoneMaster.GUI
             CreateOrderPhonesGrid.ItemsSource = null;
             CreateOrderPhonesGrid.ItemsSource = inventory.GetPhones();
         }
-     
+
         private void BackFromCreateOrder_Click(object sender, RoutedEventArgs e)
         {
             CreateOrderPanel.Visibility = Visibility.Collapsed;
             MenuPanel.Visibility = Visibility.Visible;
         }
 
-       
+
         private void RefreshPendingOrdersGrid()
         {
             var displayList = pendingOrders.Select(order => new PendingOrderDisplay
@@ -279,6 +319,13 @@ namespace PhoneMaster.GUI
 
         private void ContinueOrder_Click(object sender, RoutedEventArgs e)
         {
+
+            if (CreateOrderPhonesGrid.SelectedItem == null)
+            {
+                MessageBox.Show("Select a phone first.");
+                return;
+            }
+
             if (ClientTypeBox.SelectedItem == null)
             {
                 MessageBox.Show("Select client type.");
@@ -307,12 +354,13 @@ namespace PhoneMaster.GUI
             MessageBox.Show("Order sent to staff. Please go to the desk for payment.");
         }
 
+
         private void PendingOrdersGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (PendingOrdersGrid.SelectedItem is not PendingOrderDisplay selectedOrder)
             {
-                ProcessSummaryText.Text = "Select an order to view details.";
                 selectedOrderBasePrice = 0.0;
+                ProcessSummaryText.Text = "Select an order to view details.";
                 UpdatePaymentSummary();
                 return;
             }
@@ -330,13 +378,18 @@ namespace PhoneMaster.GUI
 
             if (contract is PhoneSimPackage package)
             {
-                planTypeText = package.PlanType == PlanType.STANDARD ? "Standard" : "Premium";
+                planTypeText = package.PlanType == PlanType.STANDARD ? "Standard Plan" : "Premium Plan";
                 durationText = $"{package.Months} months";
             }
             else if (contract is HireContract hire)
             {
-                planTypeText = hire.PlanType == PlanType.STANDARD ? "Standard" : "Premium";
+                planTypeText = hire.PlanType == PlanType.STANDARD ? "Standard Plan" : "Premium Plan";
                 durationText = $"{hire.Years} years";
+            }
+            else if (contract is SimFree)
+            {
+                planTypeText = "SIM Free";
+                durationText = "-";
             }
 
             ProcessSummaryText.Text =
@@ -349,6 +402,16 @@ namespace PhoneMaster.GUI
                 $"Total Contract Price: £{selectedOrder.TotalPrice:F2}";
 
             selectedOrderBasePrice = selectedOrder.TotalPrice;
+
+            try
+            {
+                order.CalculateTotal();
+                selectedOrderBasePrice = order.GetTotalAfterDiscount();
+            }
+            catch
+            {
+                selectedOrderBasePrice = 0.0;
+            }
 
             UpdatePaymentSummary();
         }
@@ -387,29 +450,21 @@ namespace PhoneMaster.GUI
 
         private void PaymentMethodBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (PaymentMethodBox.SelectedItem is not ComboBoxItem selectedItem)
-                return;
+            bool isCard = false;
 
-            if (SortCodeLabel == null || SortCodeBox == null ||
-                AccountNumberLabel == null || AccountNumberBox == null)
-                return;
-
-            string paymentMethod = selectedItem.Content?.ToString() ?? "";
-            bool showCardFields = paymentMethod == "CARD";
-
-            SortCodeLabel.Visibility = showCardFields ? Visibility.Visible : Visibility.Collapsed;
-            SortCodeBox.Visibility = showCardFields ? Visibility.Visible : Visibility.Collapsed;
-
-            AccountNumberLabel.Visibility = showCardFields ? Visibility.Visible : Visibility.Collapsed;
-            AccountNumberBox.Visibility = showCardFields ? Visibility.Visible : Visibility.Collapsed;
-
-            if (!showCardFields)
+            if (PaymentMethodBox.SelectedItem is ComboBoxItem item)
             {
-                SortCodeBox.Text = "";
-                AccountNumberBox.Text = "";
+                isCard = item.Content.ToString() == "CARD";
             }
-        }
 
+            SortCodeLabel.Visibility = isCard ? Visibility.Visible : Visibility.Collapsed;
+            SortCodeBox.Visibility = isCard ? Visibility.Visible : Visibility.Collapsed;
+
+            AccountNumberLabel.Visibility = isCard ? Visibility.Visible : Visibility.Collapsed;
+            AccountNumberBox.Visibility = isCard ? Visibility.Visible : Visibility.Collapsed;
+
+            UpdatePaymentOptionVisibility();
+        }
         private void DiscountPercentBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             UpdatePaymentSummary();
@@ -545,15 +600,6 @@ namespace PhoneMaster.GUI
                 MonthlyCostText.Text = "£0.00";
             }
         }
-        private void ProcessOrder_Click(object sender, RoutedEventArgs e)
-        {
-            MenuPanel.Visibility = Visibility.Collapsed;
-            ProcessOrdersPanel.Visibility = Visibility.Visible;
-
-            RefreshPendingOrdersGrid();
-            ProcessSummaryText.Text = "Select an order to view details.";
-        }
-
         private void ProcessSelectedOrder_Click(object sender, RoutedEventArgs e)
         {
             var selected = PendingOrdersGrid.SelectedItem as PendingOrderDisplay;
@@ -581,9 +627,27 @@ namespace PhoneMaster.GUI
                 ((ComboBoxItem)PaymentMethodBox.SelectedItem).Content.ToString()!;
 
             var order = selected.OrderRef;
+            var contract = order.GetContract();
+
+            // Require payment option only for PhoneSimPackage and HireContract
+            if ((contract is PhoneSimPackage || contract is HireContract) &&
+                PaymentOptionBox.SelectedItem == null)
+            {
+                MessageBox.Show("Select payment option.");
+                return;
+            }
+
+            string paymentOption = "";
+            if (PaymentOptionBox.SelectedItem is ComboBoxItem paymentOptionItem)
+            {
+                paymentOption = paymentOptionItem.Content.ToString()!;
+            }
 
             order.SetPaymentMethod(paymentMethod);
             order.SetProcessedBy(processedBy);
+
+            // Add this only if your Order/Contract classes support it
+            // order.SetPaymentOption(paymentOption);
 
             order.UpdateInventory();
             order.RecordClient();
@@ -597,7 +661,8 @@ namespace PhoneMaster.GUI
 
             ProcessSummaryText.Text = "Select an order to view details.";
             ProcessedByBox.Text = "";
-            PaymentMethodBox.SelectedIndex = 0;
+            PaymentMethodBox.SelectedIndex = -1;
+            PaymentOptionBox.SelectedIndex = -1;
 
             MessageBox.Show("Order processed successfully.");
         }
@@ -625,21 +690,29 @@ namespace PhoneMaster.GUI
         }
         private void Inventory_Click(object sender, RoutedEventArgs e)
         {
+            AuthWindow login = new AuthWindow();
+
+            if (login.ShowDialog() != true)
+                return;
+
+            var staff = login.LoggedUser;
+
+            if (staff == null || !staff.CanUpdateInventory())
+            {
+                MessageBox.Show("Access denied. CENTRAL role required.");
+                return;
+            }
+
             MenuPanel.Visibility = Visibility.Collapsed;
             InventoryPanel.Visibility = Visibility.Visible;
-
-            LoadInventoryPhones();
-            InventoryActionBox.SelectedIndex = 0;
         }
+
         private void LoadInventoryPhones()
         {
             InventoryPhonesGrid.ItemsSource = null;
             InventoryPhonesGrid.ItemsSource = inventory.GetPhones();
         }
-        private void Transactions_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("View Transactions screen");
-        }
+        
 
         // PANEL 4 - UPDATE INVENTORY PANEL BASED ON SELECTION AND ACTION
         private void InventoryPhonesGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -655,6 +728,68 @@ namespace PhoneMaster.GUI
             InvOldStockBox.Text = selectedPhone.Stock.ToString();
         }
 
+        private void LoadCreateOrderPhones()
+        {
+            CreateOrderPhonesGrid.ItemsSource = null;
+            CreateOrderPhonesGrid.ItemsSource = inventory.GetPhones();
+        }
+        private void SearchCreateOrder_Click(object sender, RoutedEventArgs e)
+        {
+            string searchText = CreateOrderSearchBox.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(searchText))
+            {
+                MessageBox.Show("Enter manufacturer or model to search.");
+                return;
+            }
+
+            var filteredPhones = inventory.GetPhones()
+                .Where(p =>
+                    p.Manufacturer.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                    p.Model.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            CreateOrderPhonesGrid.ItemsSource = filteredPhones;
+
+            if (filteredPhones.Count == 0)
+            {
+                MessageBox.Show("No matching phones found.");
+            }
+        }
+        private void PhonesGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+        }
+        private void ShowAllCreateOrder_Click(object sender, RoutedEventArgs e)
+        {
+            CreateOrderSearchBox.Text = "";
+            LoadCreateOrderPhones();
+        }
+
+        private void UpdatePaymentOptionVisibility()
+        {
+            PaymentOptionLabel.Visibility = Visibility.Collapsed;
+            PaymentOptionBox.Visibility = Visibility.Collapsed;
+            PaymentOptionBox.SelectedIndex = -1;
+
+            if (PendingOrdersGrid.SelectedItem is not PendingOrderDisplay selectedOrder)
+                return;
+
+            var contract = selectedOrder.OrderRef.GetContract();
+
+            if (contract is PhoneSimPackage || contract is HireContract)
+            {
+                PaymentOptionLabel.Visibility = Visibility.Visible;
+                PaymentOptionBox.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void CreateOrderSearchBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                SearchCreateOrder_Click(sender, e);
+            }
+        }
         private void SearchInventory_Click(object sender, RoutedEventArgs e)
         {
             string keyword = InventorySearchBox.Text.Trim();
@@ -772,6 +907,7 @@ namespace PhoneMaster.GUI
 
                 InvInitialStockLabel.Visibility = Visibility.Visible;
                 InvInitialStockBox.Visibility = Visibility.Visible;
+
             }
             else if (action == "Remove Phone")
             {
@@ -804,6 +940,37 @@ namespace PhoneMaster.GUI
             }
         }
 
+        private void PaymentOptionBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            UpdatePaymentSummary();
+        }
+        private void ProcessOrder_Click(object sender, RoutedEventArgs e)
+        {
+            AuthWindow login = new AuthWindow();
+
+            if (login.ShowDialog() != true)
+                return;
+
+            var staff = login.LoggedUser;
+            
+
+            if (staff == null || !staff.CanProcessOrders())
+            {
+                MessageBox.Show("Access denied. Only STAFF or MANAGER allowed.");
+                return;
+            }
+            currentUser = staff;
+            // ✅ ACCESS GRANTED
+            MenuPanel.Visibility = Visibility.Collapsed;
+            ProcessOrdersPanel.Visibility = Visibility.Visible;
+
+            RefreshPendingOrdersGrid();
+            ProcessSummaryText.Text = "Select an order to view details.";
+
+
+            ProcessedByBox.Text = currentUser?.Username ?? "";
+        }
+
         private void InventoryActionButton_Click(object sender, RoutedEventArgs e)
         {
             if (InventoryActionBox.SelectedItem is not ComboBoxItem selectedItem)
@@ -831,8 +998,7 @@ namespace PhoneMaster.GUI
                     MessageBox.Show("Enter phone model.");
                     return;
                 }
-
-                // STORAGE COMBOBOX LOGIC HERE
+                
                 if (InvStorageBox.SelectedItem is not ComboBoxItem storageItem)
                 {
                     MessageBox.Show("Select storage capacity.");
@@ -871,7 +1037,7 @@ namespace PhoneMaster.GUI
                     stock
                 );
 
-                bool added = inventory.AddPhone(newPhone);
+                bool added = inventory.AddPhone(newPhone, currentUser?.Username ?? "UNKNOWN");
 
                 if (!added)
                 {
@@ -913,7 +1079,7 @@ namespace PhoneMaster.GUI
                 if (result != MessageBoxResult.Yes)
                     return;
 
-                bool removed = inventory.RemovePhone(selectedPhone.PhoneID);
+                bool removed = inventory.RemovePhone(selectedPhone.PhoneID, currentUser?.Username ?? "UNKNOWN");
 
                 if (!removed)
                 {
@@ -940,7 +1106,7 @@ namespace PhoneMaster.GUI
                     return;
                 }
 
-                bool updated = inventory.UpdateStock(selectedPhone.PhoneID, newStock);
+                bool updated = inventory.UpdateStock(selectedPhone.PhoneID, newStock, currentUser?.Username ?? "UNKNOWN");
 
                 if (!updated)
                 {
@@ -967,7 +1133,7 @@ namespace PhoneMaster.GUI
                     return;
                 }
 
-                bool updated = inventory.ChangePrice(selectedPhone.PhoneID, newPrice);
+                bool updated = inventory.ChangePrice(selectedPhone.PhoneID, newPrice, currentUser?.Username ?? "UNKNOWN");
 
                 if (!updated)
                 {
@@ -1001,11 +1167,255 @@ namespace PhoneMaster.GUI
             PhonesGrid.ItemsSource = inventory.SearchPhone(keyword);
         }
 
-     
+
 
         private void BackToMenu_Click(object sender, RoutedEventArgs e)
         {
             PhonesPanel.Visibility = Visibility.Collapsed;
+            MenuPanel.Visibility = Visibility.Visible;
+        }
+
+        // 5 - VIEW TRANSACTION PANEL
+
+        private void Transactions_Click(object sender, RoutedEventArgs e)
+        {
+            AuthWindow login = new AuthWindow();
+
+            if (login.ShowDialog() != true)
+                return;
+
+            var staff = login.LoggedUser;
+
+            if (staff == null || !staff.CanViewTransactions())
+            {
+                MessageBox.Show("Access denied.");
+                return;
+            }
+
+            MenuPanel.Visibility = Visibility.Collapsed;
+            TransactionsPanel.Visibility = Visibility.Visible;
+        }
+
+        private void ShowTransactionsWelcome()
+        {
+            TransactionsWelcomePanel.Visibility = Visibility.Visible;
+            ShopBalancePanel.Visibility = Visibility.Collapsed;
+            OrderHistoryPanel.Visibility = Visibility.Collapsed;
+            ClientsPanel.Visibility = Visibility.Collapsed;
+        }
+
+        private void HideAllTransactionsSubPanels()
+        {
+            TransactionsWelcomePanel.Visibility = Visibility.Collapsed;
+            ShopBalancePanel.Visibility = Visibility.Collapsed;
+            OrderHistoryPanel.Visibility = Visibility.Collapsed;
+            ClientsPanel.Visibility = Visibility.Collapsed;
+            InventoryLogPanel.Visibility = Visibility.Collapsed;
+        }
+
+            // View Shop Balance
+        private void ViewShopBalance_Click(object sender, RoutedEventArgs e)
+        {
+            HideAllTransactionsSubPanels();
+            ShopBalancePanel.Visibility = Visibility.Visible;
+
+            double stockValue = inventory.CalculateStockValue();
+            int totalStockUnits = inventory.GetTotalStockUnits();
+
+            double revenue = 0;
+            double totalDiscountApplied = 0;
+            int totalPhonesSold = 0;
+
+            List<string> transactions = FileHandler.LoadTransactions();
+
+            foreach (string line in transactions)
+            {
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                string[] parts = line.Split('|');
+                if (parts.Length < 12)
+                    continue;
+
+                try
+                {
+                    revenue += double.Parse(parts[10].Trim());
+                    totalDiscountApplied += double.Parse(parts[9].Trim());
+                    totalPhonesSold += int.Parse(parts[5].Trim());
+                }
+                catch
+                {
+                }
+            }
+
+            double totalBalance = stockValue + revenue;
+
+            StockValueText.Text = $"£{stockValue:N2}";
+            RevenueText.Text = $"£{revenue:N2}";
+            DiscountAppliedText.Text = $"£{totalDiscountApplied:N2}";
+            TotalBalanceText.Text = $"£{totalBalance:N2}";
+
+            StockUnitsText.Text = totalStockUnits.ToString();
+            PhonesSoldText.Text = totalPhonesSold.ToString();
+        }
+
+                // View Order History
+        private void ViewOrderHistory_Click(object sender, RoutedEventArgs e)
+        {
+            HideAllTransactionsSubPanels();
+            OrderHistoryPanel.Visibility = Visibility.Visible;
+
+            List<string> transactions = FileHandler.LoadTransactions();
+
+            if (transactions.Count == 0)
+            {
+                OrderHistoryGrid.ItemsSource = null;
+                MessageBox.Show("No transactions found.");
+                return;
+            }
+
+            List<TransactionDisplay> history = new List<TransactionDisplay>();
+
+            foreach (string line in transactions)
+            {
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                string[] parts = line.Split('|');
+                if (parts.Length < 13)
+                    continue;
+
+                try
+                {
+                    history.Add(new TransactionDisplay
+                    {
+                        OrderID = parts[0].Trim(),
+                        Date = parts[1].Trim(),
+                        Client = parts[2].Trim(),
+                        PhoneID = parts[3].Trim(),
+                        Phone = parts[4].Trim(),
+                        Quantity = int.TryParse(parts[5].Trim(), out int qty) ? qty : 0,
+                        Contract = parts[6].Trim(),
+                        Subtotal = double.TryParse(parts[7].Trim(), out double subtotal) ? subtotal : 0,
+                        DiscountPercent = double.TryParse(parts[8].Trim(), out double discPct) ? discPct : 0,
+                        DiscountAmount = double.TryParse(parts[9].Trim(), out double discAmt) ? discAmt : 0,
+                        TotalPaid = double.TryParse(parts[10].Trim(), out double totalPaid) ? totalPaid : 0,
+                        Payment = parts[11].Trim(),
+                        ProcessedBy = parts[12].Trim()
+                    });
+                }
+                catch
+                {
+                }
+            }
+
+            OrderHistoryGrid.ItemsSource = null;
+            OrderHistoryGrid.ItemsSource = history;
+
+            if (history.Count == 0)
+            {
+                MessageBox.Show("No valid transactions found.");
+            }
+        }
+                // View Clients
+        private void ViewClients_Click(object sender, RoutedEventArgs e)
+        {
+            HideAllTransactionsSubPanels();
+            ClientsPanel.Visibility = Visibility.Visible;
+
+            List<string> clients = FileHandler.LoadClients();
+            List<ClientDisplay> clientList = new List<ClientDisplay>();
+
+            foreach (string line in clients)
+            {
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                string[] parts = line.Split('|');
+                if (parts.Length < 5)
+                    continue;
+
+                if (parts[0].Trim().Equals("CUSTOMER", StringComparison.OrdinalIgnoreCase))
+                {
+                    clientList.Add(new ClientDisplay
+                    {
+                        ClientType = "Customer",
+                        Name = parts.Length > 1 ? parts[1].Trim() : "",
+                        VAT = "",
+                        Email = parts.Length > 2 ? parts[2].Trim() : "",
+                        ContactPhone = parts.Length > 3 ? parts[3].Trim() : "",
+                        Address = (parts.Length > 6)
+                            ? $"{parts[4].Trim()}, {parts[5].Trim()}, {parts[6].Trim()}"
+                            : ""
+                    });
+                }
+                else if (parts[0].Trim().Equals("COMPANY", StringComparison.OrdinalIgnoreCase))
+                {
+                    clientList.Add(new ClientDisplay
+                    {
+                        ClientType = "Company",
+                        Name = parts.Length > 1 ? parts[1].Trim() : "",
+                        VAT = parts.Length > 2 ? parts[2].Trim() : "",
+                        Email = parts.Length > 3 ? parts[3].Trim() : "",
+                        ContactPhone = parts.Length > 4 ? parts[4].Trim() : "",
+                        Address = (parts.Length > 7)
+                            ? $"{parts[5].Trim()}, {parts[6].Trim()}, {parts[7].Trim()}"
+                            : ""
+                    });
+                }
+            }
+
+            ClientsGrid.ItemsSource = null;
+            ClientsGrid.ItemsSource = clientList;
+        }
+
+        // View Inventory Log 
+        private void ViewInventoryLog_Click(object sender, RoutedEventArgs e)
+        {
+            HideAllTransactionsSubPanels();
+            InventoryLogPanel.Visibility = Visibility.Visible;
+
+            List<string> logs = FileHandler.LoadInventoryLogs();
+
+            if (logs.Count == 0)
+            {
+                InventoryLogGrid.ItemsSource = null;
+                MessageBox.Show("No inventory log entries found.");
+                return;
+            }
+
+            List<InventoryLogDisplay> logList = new List<InventoryLogDisplay>();
+
+            foreach (string line in logs)
+            {
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                string[] parts = line.Split('|');
+                if (parts.Length < 5)
+                    continue;
+
+                logList.Add(new InventoryLogDisplay
+                {
+                    Timestamp = parts[0].Trim(),
+                    PerformedBy = parts[1].Trim(),
+                    Action = parts[2].Trim(),
+                    Phone = parts[3].Trim(),
+                    Details = parts[4].Trim()
+                });
+            }
+
+            InventoryLogGrid.ItemsSource = null;
+            InventoryLogGrid.ItemsSource = logList;
+
+            if (logList.Count == 0)
+            {
+                MessageBox.Show("No valid inventory log entries found.");
+            }
+        }
+        private void BackFromTransactions_Click(object sender, RoutedEventArgs e)
+        {
+            TransactionsPanel.Visibility = Visibility.Collapsed;
             MenuPanel.Visibility = Visibility.Visible;
         }
 

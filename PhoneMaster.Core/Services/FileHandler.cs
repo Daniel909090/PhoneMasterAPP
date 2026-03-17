@@ -99,6 +99,11 @@ namespace PhoneMaster.Core.Services
         {
             List<string> transactions = new List<string>();
 
+            if (!File.Exists(TRANSACTION_FILE))
+            {
+                return transactions; // file missing → empty list
+            }
+
             try
             {
                 using StreamReader sr = new StreamReader(TRANSACTION_FILE);
@@ -196,6 +201,33 @@ namespace PhoneMaster.Core.Services
             return staff;
         }
 
+        public static List<string> LoadInventoryLogs()
+        {
+            List<string> logs = new List<string>();
+
+            try
+            {
+                if (!File.Exists(INVENTORY_LOG_FILE))
+                    return logs;
+
+                using StreamReader sr = new StreamReader(INVENTORY_LOG_FILE);
+                string? line;
+
+                while ((line = sr.ReadLine()) != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(line))
+                    {
+                        logs.Add(line);
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            return logs;
+        }
+
         public static void SaveInventoryLog(string action,
                                             string phoneID,
                                             string phoneModel,
@@ -205,7 +237,7 @@ namespace PhoneMaster.Core.Services
             string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
             string logEntry = timestamp +
-                              " | Processed by (" + performedBy + ")" +
+                              " | " + performedBy +  
                               " | " + action +
                               " | " + phoneID + " " + phoneModel +
                               " | " + details;

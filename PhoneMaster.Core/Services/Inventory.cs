@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -90,30 +91,56 @@ namespace PhoneMaster.Core.Services
             return null;
         }
 
-        public bool AddPhone(Phone phone)
+        //Add Phone
+        public bool AddPhone(Phone phone, string performedBy)
         {
             if (phone.Stock < 0 || phone.Stock > 100)
                 return false;
 
             phones.Add(phone);
             FileHandler.SavePhones(phones);
+
+            //  LOGGING Mehodd added
+            FileHandler.SaveInventoryLog(
+                "ADD PHONE",
+                phone.PhoneID,
+                $"{phone.Manufacturer} {phone.Model}",
+                $"Added with price £{phone.Price:F2}, stock {phone.Stock}, storage {phone.Storage}GB",
+                performedBy
+            );
+
             return true;
         }
 
-        public bool RemovePhone(string phoneID)
+        //Remove Phone
+        public bool RemovePhone(string phoneID, string performedBy)
         {
+            Phone? phoneToRemove = SearchPhoneID(phoneID);
+
+            if (phoneToRemove == null)
+                return false;
+
             bool removed = phones.RemoveAll(p =>
                 p.PhoneID.Equals(phoneID, StringComparison.OrdinalIgnoreCase)) > 0;
 
             if (removed)
             {
                 FileHandler.SavePhones(phones);
+
+                FileHandler.SaveInventoryLog(
+                    "REMOVE PHONE",
+                    phoneToRemove.PhoneID,
+                    $"{phoneToRemove.Manufacturer} {phoneToRemove.Model}",
+                    "Phone removed from inventory",
+                    performedBy
+                );
             }
 
             return removed;
         }
 
-        public bool UpdateStock(string phoneID, int newStock)
+        //Update Stock
+        public bool UpdateStock(string phoneID, int newStock, string performedBy)
         {
             if (newStock < 0 || newStock > 100)
                 return false;
@@ -122,8 +149,19 @@ namespace PhoneMaster.Core.Services
             {
                 if (p.PhoneID.Equals(phoneID, StringComparison.OrdinalIgnoreCase))
                 {
+                    int oldStock = p.Stock;
+
                     p.Stock = newStock;
                     FileHandler.SavePhones(phones);
+
+                    FileHandler.SaveInventoryLog(
+                        "UPDATE STOCK",
+                        p.PhoneID,
+                        $"{p.Manufacturer} {p.Model}",
+                        $"Stock changed from {oldStock} to {newStock}",
+                        performedBy
+                    );
+
                     return true;
                 }
             }
@@ -131,14 +169,26 @@ namespace PhoneMaster.Core.Services
             return false;
         }
 
-        public bool ChangePrice(string phoneID, double newPrice)
+        //Change Price
+        public bool ChangePrice(string phoneID, double newPrice, string performedBy)
         {
             foreach (Phone p in phones)
             {
                 if (p.PhoneID.Equals(phoneID, StringComparison.OrdinalIgnoreCase))
                 {
+                    double oldPrice = p.Price;
+
                     p.Price = newPrice;
                     FileHandler.SavePhones(phones);
+
+                    FileHandler.SaveInventoryLog(
+                        "CHANGE PRICE",
+                        p.PhoneID,
+                        $"{p.Manufacturer} {p.Model}",
+                        $"Price changed from £{oldPrice:F2} to £{newPrice:F2}",
+                        performedBy
+                    );
+
                     return true;
                 }
             }
@@ -146,6 +196,7 @@ namespace PhoneMaster.Core.Services
             return false;
         }
 
+        //Automated method that reduces the stock after order is successfully processed
         public bool ReduceStock(string phoneID, int quantity)
         {
             if (quantity <= 0) return false;
@@ -163,6 +214,18 @@ namespace PhoneMaster.Core.Services
             }
 
             return false;
+        }
+
+        public int GetTotalStockUnits()
+        {
+            int total = 0;
+
+            foreach (Phone p in phones)
+            {
+                total += p.Stock;
+            }
+
+            return total;
         }
     }
 }
