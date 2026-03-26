@@ -84,6 +84,14 @@ Requirements:
 - Convert to a web-based system
 - Desktop-only (no web or mobile support)
 
+## Author
+
+Daniel V
+
+HND Software Development - 
+New College Lanarkshire
+
+
 ## Screenshots
 
 ### Welcome Screen
@@ -92,14 +100,14 @@ Requirements:
 ### Main Menu
 ![Main Menu](screenshots/MainMenuPanel.png)
 
+### Phones List
+![Phones](screenshots/PhonesPanel.png)
+
 ### Create Order
 ![Create Order](screenshots/CreateOrderPanel.png)
 
 ### Process Order
 ![Process Order](screenshots/ProcessOrderPanel.png)
-
-### Phones List
-![Phones](screenshots/PhonesPanel.png)
 
 ### Inventory Management - Add Phone 
 ![Inventory Management](screenshots/AddPhoneTab.png)
@@ -110,17 +118,11 @@ Requirements:
 ### View Transactions - Shop Balance Summary
 ![Shop Balance](screenshots/ShopBalanceTab.png)
 
-### View Transactions - Inventory Management Log
-![Inventory Log](screenshots/InventoryLog.png)
-
 ### View Transactions - Order History
 ![Order History](screenshots/ViewOrderHistory.png)
 
-## Author
+### View Transactions - Inventory Management Log
+![Inventory Log](screenshots/InventoryLog.png)
 
-Daniel V
-HND Software Development
-New College Lanarkshire
-  - Orders must exist before processing
-  - Stock must be available
-  - Payment method required before completion
+
+  
