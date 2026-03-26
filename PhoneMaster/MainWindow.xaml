@@ -7,28 +7,79 @@
         Icon="\Assets\favicon.ico"
         WindowStartupLocation="CenterScreen">
 
+    <!-- Style for S T A R T  Button -->
+    <Window.Resources>
+        <Style x:Key="RoundedButton" TargetType="Button">
+            <Setter Property="Background" Value="#FFB0E7B3"/>
+            <Setter Property="BorderBrush" Value="#FFEE0C0C"/>
+            <Setter Property="BorderThickness" Value="3"/>
+            <Setter Property="Foreground" Value="#1E3A8A"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                            CornerRadius="25"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+
+                            <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+                            <!-- Hover -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#FFEE0C0C"/>
+                                <Setter TargetName="border" Property="Background" Value="#E0ECFF"/>
+                            </Trigger>
+
+                            <!-- Click -->
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#FF7FCF88"/>
+                            </Trigger>
+
+                            <!-- Disabled -->
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
     <Grid>
 
         <!-- WELCOME SCREEN -->
-        <Grid x:Name="WelcomePanel" Visibility="Visible">
+        <Grid x:Name="WelcomePanel" Visibility="Visible" Margin="0,-31,0,31">
 
             <Grid.Background>
-                <ImageBrush ImageSource="/Assets/logo.png"
+                <ImageBrush ImageSource="/Assets/welcomelogo.png"
                     Stretch="Uniform"/>
             </Grid.Background>
 
-            <Border Background="#88000000">
+            <Border Background="Transparent" Margin="0,29,0,-29">
 
 
-                <Button Content="ENTER"
+                <Button Content="S T A R T"
+                        FontFamily="Segoe UI"
+                        FontSize="20"
                         VerticalAlignment="Top"
-                   Width="120"
-                   Height="50"
-                     
-                    Click="StartButton_Click" 
-                        Margin="390,467,390,0" 
-                       
-                        FontWeight="Bold" Background="#FFB0E7B3" Opacity="0.9" BorderBrush="#FFEE0C0C"/>
+                        HorizontalAlignment="Center"
+                        Width="140"
+                        Height="55"
+                        Style="{StaticResource RoundedButton}"
+                        Click="StartButton_Click" 
+                        Margin="0,470,0,0" 
+                        FontWeight="Bold" 
+                        Background="#FFB0E7B3" 
+                        Opacity="0.9" 
+                        BorderBrush="#FF2196F3"
+                        BorderThickness="2"/>
 
             </Border>
 
@@ -74,6 +125,12 @@
                         Height="45"
                         Margin="0,5,0,5"
                         Click="Transactions_Click"/>
+
+                <Button Content="Exit"
+                        Height="45"
+                        Margin="0,5,0,5"
+                        Click="ExitButton_Click"/> 
+                
             </StackPanel>
         </Grid>
 
@@ -102,8 +159,8 @@
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    
-                   
+
+
                     <!-- Search area -->
                     <StackPanel Grid.Row="0" Margin="0,0,0,10">
                         <TextBlock Text="Search manufacturer or model"
@@ -136,7 +193,7 @@
                               IsReadOnly="True"
                               SelectionMode="Single"
                               SelectionChanged="PhonesGrid_SelectionChanged"
-                              Margin="0,0,0,10">    
+                              Margin="0,0,0,10">
 
                         <DataGrid.RowStyle>
                             <Style TargetType="DataGridRow">
@@ -421,9 +478,9 @@
                 Click="ContinueOrder_Click"/>
             </Grid>
         </Grid>
-        
-        
-        
+
+
+
         <!-- 3. PROCESS ORDER PANEL -->
         <Grid x:Name="ProcessOrdersPanel" Visibility="Collapsed" Margin="10">
             <Grid.RowDefinitions>
@@ -648,8 +705,8 @@
                       Grid.Row="3"
                       Grid.Column="1"
                       Visibility="Collapsed">
-                      
-                                        
+
+
                                         <ComboBoxItem Content="Full Payment"/>
                                         <ComboBoxItem Content="Monthly Instalments"/>
                                     </ComboBox>
@@ -746,8 +803,8 @@
             </Grid>
         </Grid>
 
-        
-        
+
+
         <!-- 4. UPDATE INVENTORY PANEL -->
         <Grid x:Name="InventoryPanel" Visibility="Collapsed" Margin="10">
             <Grid.RowDefinitions>
@@ -787,13 +844,13 @@
                                      Width="244"
                                      Height="30"
                                      Margin="0,0,10,0"
-                                     KeyDown="InventorySearchBox_KeyDown"/> 
+                                     KeyDown="InventorySearchBox_KeyDown"/>
 
                             <Button Content="Search"
                                     Width="125"
                                     Height="30"
                                     Margin="0,0,10,0"
-                                    Click="SearchInventory_Click"/> 
+                                    Click="SearchInventory_Click"/>
 
                             <Button Content="Show All"
                                     Width="125"
@@ -854,7 +911,7 @@
 
                         <ComboBox x:Name="InvStorageBox"
                                   Margin="0,0,0,12"
-                                  SelectedIndex="2">                
+                                  SelectedIndex="2">
 
                             <ComboBoxItem Content="32"/>
                             <ComboBoxItem Content="64"/>
@@ -924,9 +981,9 @@
                     </StackPanel>
                 </Border>
             </Grid>
-        
 
-        <StackPanel Grid.Row="2"
+
+            <StackPanel Grid.Row="2"
                 Orientation="Horizontal"
                 HorizontalAlignment="Left"
                 Margin="0,10,0,0">
@@ -937,8 +994,8 @@
                 Click="BackFromInventory_Click"/>
             </StackPanel>
         </Grid>
-        
-     
+
+
         <!-- 5. VIEW TRANSACTIONS PANEL -->
         <Grid x:Name="TransactionsPanel" Visibility="Collapsed" Margin="10">
             <Grid.RowDefinitions>
@@ -986,7 +1043,7 @@
 
                         <Button Content="5. Back"
                                 Height="40"
-                                Click="BackFromTransactions_Click"/>    
+                                Click="BackFromTransactions_Click"/>
                     </StackPanel>
                 </Border>
 
@@ -1023,7 +1080,7 @@
 
                             <TextBlock Text="Total Phones Sold:" FontWeight="SemiBold"/>
                             <TextBlock x:Name="PhonesSoldText" Text="0" Margin="0,0,0,10"/>
-                            
+
                             <TextBlock Text="Total Revenue Earned:" FontWeight="SemiBold"/>
                             <TextBlock x:Name="RevenueText" Text="£0.00" Margin="0,0,0,10"/>
 
@@ -1060,7 +1117,7 @@
                               Grid.Row="1"
                               AutoGenerateColumns="True"
                               IsReadOnly="True">
-                                
+
                             </DataGrid>
                         </Grid>
                     </Border>
@@ -1085,7 +1142,7 @@
                               Grid.Row="1"
                               AutoGenerateColumns="True"
                               IsReadOnly="True">
-                                
+
                             </DataGrid>
                         </Grid>
                     </Border>
@@ -1110,7 +1167,7 @@
                   Grid.Row="1"
                   AutoGenerateColumns="True"
                   IsReadOnly="True">
-                                
+
                             </DataGrid>
                         </Grid>
                     </Border>

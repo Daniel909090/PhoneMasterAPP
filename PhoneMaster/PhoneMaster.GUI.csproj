@@ -10,8 +10,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Assets\PhoneMasterLogo.jpg" />
+    <None Remove="Assets\welcomelogo.png" />
+    <None Remove="Assets\welcomscreenlogo.jpg" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Resource Include="Assets\favicon.ico" />
     <Resource Include="Assets\logo.png" />
+    <Resource Include="Assets\welcomelogo.png" />
+    <Resource Include="Assets\welcomscreenlogo.jpg" />
   </ItemGroup>
 
   <ItemGroup>

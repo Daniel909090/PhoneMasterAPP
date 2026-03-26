@@ -180,6 +180,12 @@ namespace PhoneMaster.GUI
             return order;
         }
 
+
+        private void ExitButton_Click(object sender, RoutedEventArgs e)
+        {
+            MenuPanel.Visibility = Visibility.Collapsed;
+            WelcomePanel.Visibility = Visibility.Visible;
+        }
         private void ShowAllPhones_Click(object sender, RoutedEventArgs e)
         {
             SearchBox.Text = "";
