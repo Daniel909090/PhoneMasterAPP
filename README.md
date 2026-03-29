@@ -14,7 +14,7 @@ Built a desktop application in C# and WPF to simulate the workflow of a mobile p
 - Payment handling (cash/card)
 - Inventory updates (Central Staff only)
 - Order history and transaction tracking
-
+ 
  ## Technologies
 
 - C#
