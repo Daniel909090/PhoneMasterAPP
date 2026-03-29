@@ -2,61 +2,142 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Client Details"
-        Height="450"
-        Width="400"
+        Height="620"
+        Width="460"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize">
+        ResizeMode="NoResize"
+        Background="#FFF7FAFC">
 
-    <Grid Margin="15">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <Window.Resources>
+        <Style x:Key="DialogLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#FF334155"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
 
-        <StackPanel>
-            <TextBlock x:Name="ClientTypeTitle"
-                       Text="Client Details"
-                       FontSize="20"
-                       FontWeight="Bold"
-                       Margin="0,0,0,15"/>
+        <Style x:Key="DialogTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
 
-            <TextBlock Text="Name"/>
-            <TextBox x:Name="NameBox" Margin="0,0,0,8"/>
+        <Style x:Key="DialogButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                CornerRadius="14"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
 
-            <TextBlock Text="Email"/>
-            <TextBox x:Name="EmailBox" Margin="0,0,0,8"/>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
 
-            <TextBlock Text="Contact Phone"/>
-            <TextBox x:Name="PhoneBox" Margin="0,0,0,8"/>
+    <Grid Margin="18">
+        <Border Background="#F9FFFFFF"
+                BorderBrush="#22000000"
+                BorderThickness="1"
+                CornerRadius="20"
+                Padding="18">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="14"
+                                  ShadowDepth="2"
+                                  Opacity="0.14"/>
+            </Border.Effect>
 
-            <TextBlock Text="Address"/>
-            <TextBox x:Name="AddressBox" Margin="0,0,0,8"/>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-            <TextBlock Text="Postcode"/>
-            <TextBox x:Name="PostcodeBox" Margin="0,0,0,8"/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock x:Name="ClientTypeTitle"
+                                   Text="Client Details"
+                                   FontSize="19"
+                                   FontWeight="Bold"
+                                   Foreground="#FF1E3A8A"
+                                   Margin="0,0,0,16"/>
 
-            <TextBlock Text="Town"/>
-            <TextBox x:Name="TownBox" Margin="0,0,0,8"/>
+                        <TextBlock Text="Name" Style="{StaticResource DialogLabelStyle}"/>
+                        <TextBox x:Name="NameBox" Style="{StaticResource DialogTextBoxStyle}"/>
 
-            <TextBlock x:Name="VatLabel"
-                       Text="VAT Number"
-                       Visibility="Collapsed"/>
-            <TextBox x:Name="VatNumberBox"
-                     Margin="0,0,0,8"
-                     Visibility="Collapsed"/>
-        </StackPanel>
+                        <TextBlock Text="Email" Style="{StaticResource DialogLabelStyle}"/>
+                        <TextBox x:Name="EmailBox" Style="{StaticResource DialogTextBoxStyle}"/>
 
-        <StackPanel Grid.Row="1"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Center"
-                    Margin="0,8,0,7" Width="294">
-            <Button Content="Cancel"
-                    Width="100"
-                    Margin="5"
-                    Click="Cancel_Click"/>
-            <Button Content="Send Order to Staff"
-                    Width="141"
-                    Click="Save_Click" Height="20" Background="#FF9BE418" FontWeight="Bold"/>
-        </StackPanel>
+                        <TextBlock Text="Contact Phone" Style="{StaticResource DialogLabelStyle}"/>
+                        <TextBox x:Name="PhoneBox" Style="{StaticResource DialogTextBoxStyle}"/>
+
+                        <TextBlock Text="Address" Style="{StaticResource DialogLabelStyle}"/>
+                        <TextBox x:Name="AddressBox" Style="{StaticResource DialogTextBoxStyle}"/>
+
+                        <TextBlock Text="Postcode" Style="{StaticResource DialogLabelStyle}"/>
+                        <TextBox x:Name="PostcodeBox" Style="{StaticResource DialogTextBoxStyle}"/>
+
+                        <TextBlock Text="Town" Style="{StaticResource DialogLabelStyle}"/>
+                        <TextBox x:Name="TownBox" Style="{StaticResource DialogTextBoxStyle}"/>
+
+                        <TextBlock x:Name="VatLabel"
+                                   Text="VAT Number"
+                                   Style="{StaticResource DialogLabelStyle}"
+                                   Visibility="Collapsed"/>
+                        <TextBox x:Name="VatNumberBox"
+                                 Style="{StaticResource DialogTextBoxStyle}"
+                                 Visibility="Collapsed"/>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <Grid Grid.Row="1" Margin="0,14,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button Grid.Column="0"
+                            Content="Cancel"
+                            Width="110"
+                            Background="#FFFDF2F2"
+                            BorderBrush="#FFD9534F"
+                            Foreground="#FF8B1E1E"
+                            Style="{StaticResource DialogButtonStyle}"
+                            HorizontalAlignment="Left"
+                            Click="Cancel_Click"/>
+
+                    <Button Grid.Column="1"
+                            Content="Send Order to Staff"
+                            Width="170"
+                            Background="#FFFFFFFF"
+                            BorderBrush="#FF2196F3"
+                            Foreground="#FF1E3A8A"
+                            Style="{StaticResource DialogButtonStyle}"
+                            HorizontalAlignment="Right"
+                            Click="Save_Click"/>
+                </Grid>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

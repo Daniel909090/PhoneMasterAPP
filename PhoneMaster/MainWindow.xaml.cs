@@ -51,14 +51,17 @@ namespace PhoneMaster.GUI
         private PhoneMaster.Core.Services.Order? currentOrder;
         private List<PhoneMaster.Core.Services.Order> pendingOrders = new List<PhoneMaster.Core.Services.Order>();
         private double selectedOrderBasePrice = 0.0;
-
+        private bool discountValidated = false;
+        private double validatedDiscountPercent = 0.0;
         public MainWindow()
         {
             InitializeComponent();
             LoadContractTypes();
 
             ApplyDiscountBox.SelectedIndex = 0;
-            PaymentMethodBox.SelectedIndex = 0;
+            PaymentMethodBox.SelectedIndex = -1;
+
+
         }
        
         private void LoadPhones()
@@ -326,9 +329,23 @@ namespace PhoneMaster.GUI
         private void ContinueOrder_Click(object sender, RoutedEventArgs e)
         {
 
-            if (CreateOrderPhonesGrid.SelectedItem == null)
+            if (CreateOrderPhonesGrid.SelectedItem is not Phone selectedPhone)
             {
                 MessageBox.Show("Select a phone first.");
+                return;
+            }
+
+            if (!int.TryParse(QuantityTextBox.Text, out int quantity) || quantity <= 0)
+            {
+                MessageBox.Show("Enter quantity first.");
+                QuantityTextBox.Focus();
+                return;
+            }
+
+            if (quantity > selectedPhone.Stock)
+            {
+                MessageBox.Show("Not enough stock available.");
+                QuantityTextBox.Focus();
                 return;
             }
 
@@ -357,12 +374,55 @@ namespace PhoneMaster.GUI
             pendingOrders.Add(order);
             currentOrder = order;
 
+            ResetCreateOrderPanel();
+
             MessageBox.Show("Order sent to staff. Please go to the desk for payment.");
+            
         }
 
+        public void ResetCreateOrderPanel()
+        {
+            CreateOrderSearchBox.Text = "";
+            LoadCreateOrderPhones();
+
+            CreateOrderPhonesGrid.SelectedItem = null;
+
+            QuantityTextBox.Text = "";
+
+            ClientTypeBox.SelectedIndex = -1;
+            ContractTypeBox.Items.Clear();
+            ContractTypeBox.SelectedIndex = -1;
+
+            PlanTypeBox.SelectedIndex = -1;
+            PlanTypeBox.Visibility = Visibility.Collapsed;
+            PlanTypeLabel.Visibility = Visibility.Collapsed;
+
+            DurationBox.Items.Clear();
+            DurationBox.SelectedIndex = -1;
+            DurationBox.Visibility = Visibility.Collapsed;
+            DurationLabel.Visibility = Visibility.Collapsed;
+
+            PhoneDetailsText.Text = "-";
+            TotalPriceText.Text = "£0.00";
+            MonthlyCostText.Text = "£0.00";
+        }
 
         private void PendingOrdersGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            // Reset discount/payment state when switching orders
+            ApplyDiscountBox.SelectedIndex = 0;
+            ResetDiscountApprovalState();
+            ManagerUsernameBox.Text = "";
+            ManagerPasswordBox.Password = "";
+            DiscountPercentBox.Text = "";
+            discountValidated = false;
+            validatedDiscountPercent = 0.0;
+
+            PaymentMethodBox.SelectedIndex = -1;
+            PaymentOptionBox.SelectedIndex = -1;
+            SortCodeBox.Text = "";
+            AccountNumberBox.Text = "";
+
             if (PendingOrdersGrid.SelectedItem is not PendingOrderDisplay selectedOrder)
             {
                 selectedOrderBasePrice = 0.0;
@@ -400,7 +460,7 @@ namespace PhoneMaster.GUI
 
             ProcessSummaryText.Text =
                 $"Client: {selectedOrder.ClientName}\n" +
-                $"Phone Details: {phoneDetails}\n" +
+                $"{phoneDetails}\n" +
                 $"Quantity: {selectedOrder.Quantity}\n" +
                 $"Contract: {selectedOrder.ContractType}\n" +
                 $"Plan Type: {planTypeText}\n" +
@@ -422,14 +482,10 @@ namespace PhoneMaster.GUI
             UpdatePaymentSummary();
         }
 
+
         private void ApplyDiscountBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (ApplyDiscountBox.SelectedItem is not ComboBoxItem selectedItem)
-                return;
-
-            if (ManagerUsernameLabel == null || ManagerUsernameBox == null ||
-                ManagerPasswordLabel == null || ManagerPasswordBox == null ||
-                DiscountPercentLabel == null || DiscountPercentBox == null)
                 return;
 
             string applyDiscount = selectedItem.Content?.ToString() ?? "";
@@ -444,14 +500,82 @@ namespace PhoneMaster.GUI
             DiscountPercentLabel.Visibility = showFields ? Visibility.Visible : Visibility.Collapsed;
             DiscountPercentBox.Visibility = showFields ? Visibility.Visible : Visibility.Collapsed;
 
-            if (!showFields)
-            {
-                ManagerUsernameBox.Text = "";
-                ManagerPasswordBox.Password = "";
-                DiscountPercentBox.Text = "";
-            }
+            ValidateDiscountButton.Visibility = showFields ? Visibility.Visible : Visibility.Collapsed;
+
+            ResetDiscountApprovalState();
 
             UpdatePaymentSummary();
+        }
+
+
+        private void SetDiscountControlsLocked(bool isLocked)
+        {
+            ManagerUsernameBox.IsEnabled = !isLocked;
+            ManagerPasswordBox.IsEnabled = !isLocked;
+            DiscountPercentBox.IsEnabled = !isLocked;
+            ValidateDiscountButton.IsEnabled = !isLocked;
+        }
+
+        private void ResetDiscountApprovalState()
+        {
+            discountValidated = false;
+            validatedDiscountPercent = 0.0;
+
+            ManagerUsernameBox.Text = "";
+            ManagerPasswordBox.Password = "";
+            DiscountPercentBox.Text = "";
+
+            SetDiscountControlsLocked(false);
+        }
+
+        private void ValidateDiscountButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (PendingOrdersGrid.SelectedItem is not PendingOrderDisplay selectedOrder)
+            {
+                MessageBox.Show("Select an order first.");
+                return;
+            }
+
+            string username = ManagerUsernameBox.Text.Trim();
+            string password = ManagerPasswordBox.Password.Trim();
+
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            {
+                MessageBox.Show("Enter manager username and password.");
+                return;
+            }
+
+            var manager = Staff.LoginFromFile(username, password);
+
+            if (manager == null || !manager.CanApproveDiscount())
+            {
+                MessageBox.Show("Manager authentication failed. Discount was not approved.");
+
+                ApplyDiscountBox.SelectedIndex = 0; // No
+                ResetDiscountApprovalState();
+                UpdatePaymentSummary();
+                return;
+            }
+
+            if (!double.TryParse(DiscountPercentBox.Text, out double discountPercent))
+            {
+                MessageBox.Show("Enter a valid discount percentage.");
+                return;
+            }
+
+            if (discountPercent < 1 || discountPercent > 20)
+            {
+                MessageBox.Show("Discount must be between 1% and 20%.");
+                return;
+            }
+
+            discountValidated = true;
+            validatedDiscountPercent = discountPercent;
+
+            SetDiscountControlsLocked(true);
+            UpdatePaymentSummary();
+
+            MessageBox.Show("Discount approved successfully.");
         }
 
         private void PaymentMethodBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -460,7 +584,7 @@ namespace PhoneMaster.GUI
 
             if (PaymentMethodBox.SelectedItem is ComboBoxItem item)
             {
-                isCard = item.Content.ToString() == "CARD";
+                isCard = item.Content?.ToString() == "CARD";
             }
 
             SortCodeLabel.Visibility = isCard ? Visibility.Visible : Visibility.Collapsed;
@@ -469,143 +593,105 @@ namespace PhoneMaster.GUI
             AccountNumberLabel.Visibility = isCard ? Visibility.Visible : Visibility.Collapsed;
             AccountNumberBox.Visibility = isCard ? Visibility.Visible : Visibility.Collapsed;
 
-            UpdatePaymentOptionVisibility();
+            bool showPaymentOption = false;
+
+            if (PendingOrdersGrid.SelectedItem is PendingOrderDisplay selectedOrder)
+            {
+                var contract = selectedOrder.OrderRef.GetContract();
+                showPaymentOption = isCard &&
+                                    (contract is PhoneSimPackage || contract is HireContract);
+            }
+
+            PaymentOptionLabel.Visibility = showPaymentOption ? Visibility.Visible : Visibility.Collapsed;
+            PaymentOptionBox.Visibility = showPaymentOption ? Visibility.Visible : Visibility.Collapsed;
+
+            if (!showPaymentOption)
+            {
+                PaymentOptionBox.SelectedIndex = -1;
+            }
+
+            if (!isCard)
+            {
+                SortCodeBox.Text = "";
+                AccountNumberBox.Text = "";
+            }
+        }
+
+        private void SortCodeBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string digits = new string(SortCodeBox.Text.Where(char.IsDigit).ToArray());
+
+            if (digits.Length > 6)
+                digits = digits.Substring(0, 6);
+
+            string formatted = "";
+
+            if (digits.Length >= 2)
+                formatted += digits.Substring(0, 2);
+            else
+                formatted += digits;
+
+            if (digits.Length >= 4)
+                formatted += "-" + digits.Substring(2, 2);
+            else if (digits.Length > 2)
+                formatted += "-" + digits.Substring(2);
+
+            if (digits.Length > 4)
+                formatted += "-" + digits.Substring(4);
+
+            SortCodeBox.TextChanged -= SortCodeBox_TextChanged;
+            SortCodeBox.Text = formatted;
+            SortCodeBox.CaretIndex = SortCodeBox.Text.Length;
+            SortCodeBox.TextChanged += SortCodeBox_TextChanged;
         }
         private void DiscountPercentBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            UpdatePaymentSummary();
+        UpdatePaymentSummary();
         }
 
-        private void UpdatePaymentSummary()
+
+        
+
+
+        private void DeleteOrder_Click(object sender, RoutedEventArgs e)
         {
-            double basePrice = selectedOrderBasePrice;
-            double discountPercent = 0.0;
-            double discountAmount = 0.0;
-            double totalPayable = basePrice;
+            var selected = PendingOrdersGrid.SelectedItem as PendingOrderDisplay;
 
-            if (ApplyDiscountBox.SelectedItem is ComboBoxItem selectedItem)
+            if (selected == null)
             {
-                string applyDiscount = selectedItem.Content?.ToString() ?? "";
-
-                if (applyDiscount == "Yes")
-                {
-                    if (double.TryParse(DiscountPercentBox.Text, out double parsedDiscount))
-                    {
-                        discountPercent = parsedDiscount;
-                    }
-
-                    if (discountPercent < 0)
-                        discountPercent = 0;
-
-                    if (discountPercent > 100)
-                        discountPercent = 100;
-
-                    discountAmount = basePrice * (discountPercent / 100.0);
-                    totalPayable = basePrice - discountAmount;
-                }
+                MessageBox.Show("Select an order first.");
+                return;
             }
 
-            BasePriceText.Text = $"Base Price: £{basePrice:F2}";
-            DiscountAmountText.Text = $"Discount Amount: £{discountAmount:F2}";
-            TotalPayableText.Text = $"Total Payable: £{totalPayable:F2}";
+            var order = selected.OrderRef;
+            var phone = order.GetPhone();
+            var client = order.GetClient();
+
+            string orderDetails =
+
+                $"Client: {client?.Name ?? "-"}\n" +
+                $"Phone: {phone?.Manufacturer} {phone?.Model} {phone?.Storage}GB";
+
+            MessageBoxResult result = MessageBox.Show(
+                $"Are you sure you want to delete this order?\n\n{orderDetails}",
+                "Confirm Delete",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning
+            );
+
+            if (result != MessageBoxResult.Yes)
+                return;
+
+            pendingOrders.Remove(order);
+
+            RefreshPendingOrdersGrid();
+
+            ProcessSummaryText.Text = "Select an order to view details.";
+
+            MessageBox.Show("Order deleted successfully.");
         }
 
-        private void UpdateOrderSummary()
-        {
-            try
-            {
-                if (CreateOrderPhonesGrid.SelectedItem == null)
-                {
-                    PhoneDetailsText.Text = "-";
-                    TotalPriceText.Text = "£0.00";
-                    MonthlyCostText.Text = "£0.00";
-                    return;
-                }
 
-                if (!int.TryParse(QuantityTextBox.Text, out int quantity) || quantity <= 0)
-                {
-                    TotalPriceText.Text = "£0.00";
-                    MonthlyCostText.Text = "£0.00";
-                    return;
-                }
-
-                Phone phone = (Phone)CreateOrderPhonesGrid.SelectedItem;
-                PhoneDetailsText.Text = $"{phone.Manufacturer} {phone.Model} {phone.Storage}GB - £{phone.Price:F2}";
-
-
-                if (ContractTypeBox.SelectedItem == null)
-                {
-                    TotalPriceText.Text = "£0.00";
-                    MonthlyCostText.Text = "£0.00";
-                    return;
-                }
-
-                string contractType = ((ComboBoxItem)ContractTypeBox.SelectedItem).Content.ToString()!;
-                Contract contract;
-
-                if (contractType == "SIM-Free")
-                {
-                    contract = new SimFree(phone.Price);
-                }
-                else
-                {
-                    if (PlanTypeBox.SelectedItem == null || DurationBox.SelectedItem == null)
-                    {
-                        TotalPriceText.Text = "£0.00";
-                        MonthlyCostText.Text = "£0.00";
-                        return;
-                    }
-
-                    string planTypeText = ((ComboBoxItem)PlanTypeBox.SelectedItem).Content.ToString()!;
-                    PlanType planType = (planTypeText == "Standard")
-                        ? PlanType.STANDARD
-                        : PlanType.PREMIUM;
-
-                    if (DurationBox.SelectedItem is not ComboBoxItem durationItem)
-                    {
-                        TotalPriceText.Text = "£0.00";
-                        MonthlyCostText.Text = "£0.00";
-                        return;
-                    }
-
-                    int duration = int.Parse(durationItem.Content?.ToString() ?? "0");
-                    if (contractType == "Phone + SIM Package")
-                    {
-                        contract = new PhoneSimPackage(phone.Price, duration, planType);
-                    }
-                    else if (contractType == "Hire Contract")
-                    {
-                        contract = new HireContract(phone.Price, planType, duration);
-                    }
-                    else
-                    {
-                        TotalPriceText.Text = "£0.00";
-                        MonthlyCostText.Text = "£0.00";
-                        return;
-                    }
-                }
-
-                double total = contract.CalculateTotal(quantity);
-                double monthly = 0;
-
-                if (contract is PhoneSimPackage p)
-                {
-                    monthly = total / p.Months;
-                }
-                else if (contract is HireContract h)
-                {
-                    monthly = total / (h.Years * 12);
-                }
-
-                TotalPriceText.Text = $"£{total:F2}";
-                MonthlyCostText.Text = monthly > 0 ? $"£{monthly:F2}" : "N/A";
-            }
-            catch
-            {
-                TotalPriceText.Text = "£0.00";
-                MonthlyCostText.Text = "£0.00";
-            }
-        }
         private void ProcessSelectedOrder_Click(object sender, RoutedEventArgs e)
         {
             var selected = PendingOrdersGrid.SelectedItem as PendingOrderDisplay;
@@ -632,11 +718,30 @@ namespace PhoneMaster.GUI
             string paymentMethod =
                 ((ComboBoxItem)PaymentMethodBox.SelectedItem).Content.ToString()!;
 
+            if (paymentMethod == "CARD")
+            {
+                string accountNumber = AccountNumberBox.Text.Trim();
+                string sortCode = SortCodeBox.Text.Trim();
+
+                if (!System.Text.RegularExpressions.Regex.IsMatch(accountNumber, @"^\d{8}$"))
+                {
+                    MessageBox.Show("Account number must be exactly 8 digits.");
+                    return;
+                }
+
+                if (!System.Text.RegularExpressions.Regex.IsMatch(sortCode, @"^\d{2}-\d{2}-\d{2}$"))
+                {
+                    MessageBox.Show("Sort code must be in format 12-34-56.");
+                    return;
+                }
+            }
+
             var order = selected.OrderRef;
             var contract = order.GetContract();
 
-            // Require payment option only for PhoneSimPackage and HireContract
+            // Require payment option only for PhoneSimPackage and HireContract when payment is CARD
             if ((contract is PhoneSimPackage || contract is HireContract) &&
+                paymentMethod == "CARD" &&
                 PaymentOptionBox.SelectedItem == null)
             {
                 MessageBox.Show("Select payment option.");
@@ -649,11 +754,80 @@ namespace PhoneMaster.GUI
                 paymentOption = paymentOptionItem.Content.ToString()!;
             }
 
+            // Discount validation logic
+            double approvedDiscount = 0.0;
+
+            if (ApplyDiscountBox.SelectedItem is ComboBoxItem discountItem &&
+                discountItem.Content?.ToString() == "Yes")
+            {
+                if (!discountValidated)
+                {
+                    MessageBox.Show("Discount must be validated by a manager before processing.");
+                    return;
+                }
+
+                approvedDiscount = validatedDiscountPercent;
+            }
+
+            if (!order.ApplyDiscount(approvedDiscount))
+            {
+                MessageBox.Show("Discount could not be applied.");
+                return;
+            }
+
+            order.CalculateTotal();
+            selectedOrderBasePrice = order.GetTotalAfterDiscount();
+            UpdatePaymentSummary();
+
             order.SetPaymentMethod(paymentMethod);
             order.SetProcessedBy(processedBy);
 
-            // Add this only if your Order/Contract classes support it
-            // order.SetPaymentOption(paymentOption);
+            if (paymentMethod == "CARD" && paymentOption == "Monthly Instalments")
+            {
+                order.SetMonthlyPayment(true);
+                order.SetMonthlyAmount(order.CalculateMonthlyPayment());
+            }
+            else
+            {
+                order.SetMonthlyPayment(false);
+                order.SetMonthlyAmount(0);
+            }
+
+            if (paymentMethod == "CARD")
+            {
+                order.SetCardDetails(AccountNumberBox.Text.Trim(), SortCodeBox.Text.Trim());
+            }
+
+            // FINAL CONFIRMATION BEFORE PROCESSING
+            var phone = order.GetPhone();
+            var client = order.GetClient();
+
+            string confirmationMessage =
+                $"Are you sure you want to process this order?\n\n" +
+                $"Client: {client?.Name ?? "-"}\n" +
+                $"Phone: {phone?.Manufacturer} {phone?.Model} {phone?.Storage}GB\n" +
+                $"Quantity: {order.GetQuantity()}\n" +
+                $"Payment Method: {paymentMethod}\n" +
+                $"Total Payable: £{order.GetTotalAfterDiscount():F2}";
+
+            if (paymentMethod == "CARD" && paymentOption == "Monthly Instalments")
+            {
+                confirmationMessage += $"\nMonthly Instalment: £{order.CalculateMonthlyPayment():F2}";
+            }
+
+            if (approvedDiscount > 0)
+            {
+                confirmationMessage += $"\nDiscount Approved: {approvedDiscount:F0}%";
+            }
+
+            MessageBoxResult confirmResult = MessageBox.Show(
+                confirmationMessage,
+                "Confirm Process Order",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (confirmResult != MessageBoxResult.Yes)
+                return;
 
             order.UpdateInventory();
             order.RecordClient();
@@ -666,27 +840,21 @@ namespace PhoneMaster.GUI
             RefreshPendingOrdersGrid();
 
             ProcessSummaryText.Text = "Select an order to view details.";
-            ProcessedByBox.Text = "";
+            ProcessedByBox.Text = currentUser?.Username ?? "";
+
             PaymentMethodBox.SelectedIndex = -1;
             PaymentOptionBox.SelectedIndex = -1;
 
+            SortCodeBox.Text = "";
+            AccountNumberBox.Text = "";
+
+            ApplyDiscountBox.SelectedIndex = 0;
+            ResetDiscountApprovalState();
+
+            selectedOrderBasePrice = 0.0;
+            UpdatePaymentSummary();
+
             MessageBox.Show("Order processed successfully.");
-        }
-
-        private void DeleteOrder_Click(object sender, RoutedEventArgs e)
-        {
-            var selected = PendingOrdersGrid.SelectedItem as PendingOrderDisplay;
-
-            if (selected == null)
-            {
-                MessageBox.Show("Select an order first.");
-                return;
-            }
-
-            pendingOrders.Remove(selected.OrderRef);
-
-            RefreshPendingOrdersGrid();
-            ProcessSummaryText.Text = "Select an order to view details.";
         }
 
         private void BackFromProcessOrders_Click(object sender, RoutedEventArgs e)
@@ -694,6 +862,11 @@ namespace PhoneMaster.GUI
             ProcessOrdersPanel.Visibility = Visibility.Collapsed;
             MenuPanel.Visibility = Visibility.Visible;
         }
+
+
+
+        // PANEL 4 - UPDATE INVENTORY PANEL BASED ON SELECTION AND ACTION
+
         private void Inventory_Click(object sender, RoutedEventArgs e)
         {
             AuthWindow login = new AuthWindow();
@@ -709,8 +882,12 @@ namespace PhoneMaster.GUI
                 return;
             }
 
+            currentUser = staff;
+
             MenuPanel.Visibility = Visibility.Collapsed;
             InventoryPanel.Visibility = Visibility.Visible;
+
+            LoadInventoryPhones();
         }
 
         private void LoadInventoryPhones()
@@ -718,13 +895,23 @@ namespace PhoneMaster.GUI
             InventoryPhonesGrid.ItemsSource = null;
             InventoryPhonesGrid.ItemsSource = inventory.GetPhones();
         }
-        
 
-        // PANEL 4 - UPDATE INVENTORY PANEL BASED ON SELECTION AND ACTION
         private void InventoryPhonesGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (InventoryPhonesGrid.SelectedItem is not Phone selectedPhone)
+            {
+                InvManufacturerBox.Text = "";
+                InvModelBox.Text = "";
+                InvStorageBox.Text = "";
+                InvReleaseYearBox.Text = "";
+                InvPriceBox.Text = "";
+                InvOldStockBox.Text = "";
+
+                if (InvSelectedPhoneLabel.Visibility == Visibility.Visible)
+                    InvSelectedPhoneLabel.Text = "Selected phone: none";
+
                 return;
+            }
 
             InvManufacturerBox.Text = selectedPhone.Manufacturer;
             InvModelBox.Text = selectedPhone.Model;
@@ -732,6 +919,14 @@ namespace PhoneMaster.GUI
             InvReleaseYearBox.Text = selectedPhone.ReleaseYear.ToString();
             InvPriceBox.Text = selectedPhone.Price.ToString("F2");
             InvOldStockBox.Text = selectedPhone.Stock.ToString();
+
+            if (InvSelectedPhoneLabel.Visibility == Visibility.Visible)
+            {
+                InvSelectedPhoneLabel.Text =
+                                        $"Selected phone:\n" +
+                                        $"{selectedPhone.PhoneID} - {selectedPhone.Manufacturer} {selectedPhone.Model}\n" +
+                                        $"{selectedPhone.Storage}GB | £{selectedPhone.Price:F2} | Stock: {selectedPhone.Stock}";
+            }
         }
 
         private void LoadCreateOrderPhones()
@@ -764,6 +959,19 @@ namespace PhoneMaster.GUI
         }
         private void PhonesGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (PhonesGrid.SelectedItem is not Phone selectedPhone)
+            {
+                SelectedPhoneText.Text = "No phone selected";
+                SelectedPhoneImage.Source = null;
+                return;
+            }
+
+            SelectedPhoneText.Text =
+               
+                $"{selectedPhone.Manufacturer} {selectedPhone.Model}\n" +
+                $"Storage: {selectedPhone.Storage} GB\n" +
+                $"Release Year: {selectedPhone.ReleaseYear}\n" +
+                $"Price: £{selectedPhone.Price:F2}\n" ;
         }
         private void ShowAllCreateOrder_Click(object sender, RoutedEventArgs e)
         {
@@ -771,24 +979,7 @@ namespace PhoneMaster.GUI
             LoadCreateOrderPhones();
         }
 
-        private void UpdatePaymentOptionVisibility()
-        {
-            PaymentOptionLabel.Visibility = Visibility.Collapsed;
-            PaymentOptionBox.Visibility = Visibility.Collapsed;
-            PaymentOptionBox.SelectedIndex = -1;
-
-            if (PendingOrdersGrid.SelectedItem is not PendingOrderDisplay selectedOrder)
-                return;
-
-            var contract = selectedOrder.OrderRef.GetContract();
-
-            if (contract is PhoneSimPackage || contract is HireContract)
-            {
-                PaymentOptionLabel.Visibility = Visibility.Visible;
-                PaymentOptionBox.Visibility = Visibility.Visible;
-            }
-        }
-
+   
         private void CreateOrderSearchBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
@@ -887,6 +1078,9 @@ namespace PhoneMaster.GUI
             InvNewPriceLabel.Visibility = Visibility.Collapsed;
             InvNewPriceBox.Visibility = Visibility.Collapsed;
 
+            InvSelectedPhoneLabel.Visibility = Visibility.Collapsed;
+            InvSelectedPhoneLabel.Text = "Selected phone: none";
+
             // Add Phone
             if (action == "Add Phone")
             {
@@ -913,11 +1107,12 @@ namespace PhoneMaster.GUI
 
                 InvInitialStockLabel.Visibility = Visibility.Visible;
                 InvInitialStockBox.Visibility = Visibility.Visible;
-
             }
             else if (action == "Remove Phone")
             {
                 InventoryActionButton.Content = "Remove Phone";
+
+                InvSelectedPhoneLabel.Visibility = Visibility.Visible;
             }
             else if (action == "Update Stock")
             {
@@ -930,6 +1125,7 @@ namespace PhoneMaster.GUI
                 InvNewStockBox.Visibility = Visibility.Visible;
 
                 InvNewStockBox.Text = "";
+                InvSelectedPhoneLabel.Visibility = Visibility.Visible;
             }
             else if (action == "Change Price")
             {
@@ -943,9 +1139,18 @@ namespace PhoneMaster.GUI
                 InvNewPriceBox.Visibility = Visibility.Visible;
 
                 InvNewPriceBox.Text = "";
+                InvSelectedPhoneLabel.Visibility = Visibility.Visible;
+            }
+
+            if (InvSelectedPhoneLabel.Visibility == Visibility.Visible &&
+                InventoryPhonesGrid.SelectedItem is Phone selectedPhone)
+            {
+                InvSelectedPhoneLabel.Text =
+                $"Selected phone:\n" +
+                $"{selectedPhone.PhoneID} - {selectedPhone.Manufacturer} {selectedPhone.Model}\n" +
+                $"{selectedPhone.Storage}GB | £{selectedPhone.Price:F2} | Stock: {selectedPhone.Stock}";
             }
         }
-
         private void PaymentOptionBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             UpdatePaymentSummary();
@@ -966,7 +1171,7 @@ namespace PhoneMaster.GUI
                 return;
             }
             currentUser = staff;
-            // ✅ ACCESS GRANTED
+
             MenuPanel.Visibility = Visibility.Collapsed;
             ProcessOrdersPanel.Visibility = Visibility.Visible;
 
@@ -976,7 +1181,11 @@ namespace PhoneMaster.GUI
 
             ProcessedByBox.Text = currentUser?.Username ?? "";
         }
-
+        private void ClearInventoryInputs()
+        {
+            InvNewStockBox.Text = "";
+            InvNewPriceBox.Text = "";
+        }
         private void InventoryActionButton_Click(object sender, RoutedEventArgs e)
         {
             if (InventoryActionBox.SelectedItem is not ComboBoxItem selectedItem)
@@ -1112,6 +1321,17 @@ namespace PhoneMaster.GUI
                     return;
                 }
 
+                string phoneName = $"{selectedPhone.Manufacturer} {selectedPhone.Model} {selectedPhone.Storage}GB";
+
+                MessageBoxResult result = MessageBox.Show(
+                    $"Are you sure you want to update stock?\n\n{phoneName}\nNew Stock: {newStock}",
+                    "Confirm Update Stock",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (result != MessageBoxResult.Yes)
+                    return;
+
                 bool updated = inventory.UpdateStock(selectedPhone.PhoneID, newStock, currentUser?.Username ?? "UNKNOWN");
 
                 if (!updated)
@@ -1121,6 +1341,9 @@ namespace PhoneMaster.GUI
                 }
 
                 LoadInventoryPhones();
+
+                ClearInventoryInputs();
+
                 MessageBox.Show("Stock updated successfully.");
             }
 
@@ -1138,6 +1361,17 @@ namespace PhoneMaster.GUI
                     MessageBox.Show("Enter a valid price.");
                     return;
                 }
+                
+                string phoneName = $"{selectedPhone.Manufacturer} {selectedPhone.Model} {selectedPhone.Storage}GB";
+
+                MessageBoxResult result = MessageBox.Show(
+                    $"Are you sure you want to change price?\n\n{phoneName}\nNew Price: £{newPrice:F2}",
+                    "Confirm Price Change",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (result != MessageBoxResult.Yes)
+                    return;
 
                 bool updated = inventory.ChangePrice(selectedPhone.PhoneID, newPrice, currentUser?.Username ?? "UNKNOWN");
 
@@ -1148,6 +1382,7 @@ namespace PhoneMaster.GUI
                 }
 
                 LoadInventoryPhones();
+                ClearInventoryInputs();
                 MessageBox.Show("Price changed successfully.");
             }
         }
@@ -1156,9 +1391,11 @@ namespace PhoneMaster.GUI
         {
             InventoryPanel.Visibility = Visibility.Collapsed;
             MenuPanel.Visibility = Visibility.Visible;
+
+            currentUser = null;
         }
 
-
+        
         private void SearchPhone_Click(object sender, RoutedEventArgs e)
         {
             string keyword = SearchBox.Text;
@@ -1174,15 +1411,17 @@ namespace PhoneMaster.GUI
         }
 
 
-
         private void BackToMenu_Click(object sender, RoutedEventArgs e)
         {
             PhonesPanel.Visibility = Visibility.Collapsed;
             MenuPanel.Visibility = Visibility.Visible;
         }
 
+
+
         // 5 - VIEW TRANSACTION PANEL
 
+        
         private void Transactions_Click(object sender, RoutedEventArgs e)
         {
             AuthWindow login = new AuthWindow();
@@ -1200,6 +1439,7 @@ namespace PhoneMaster.GUI
 
             MenuPanel.Visibility = Visibility.Collapsed;
             TransactionsPanel.Visibility = Visibility.Visible;
+            ShowTransactionsWelcome();
         }
 
         private void ShowTransactionsWelcome()
@@ -1303,7 +1543,7 @@ namespace PhoneMaster.GUI
                         Quantity = int.TryParse(parts[5].Trim(), out int qty) ? qty : 0,
                         Contract = parts[6].Trim(),
                         Subtotal = double.TryParse(parts[7].Trim(), out double subtotal) ? subtotal : 0,
-                        DiscountPercent = double.TryParse(parts[8].Trim(), out double discPct) ? discPct : 0,
+                        DiscountPercent  = double.TryParse(parts[8].Trim().Replace("%", "").Trim(), out double discPct) ? discPct : 0,
                         DiscountAmount = double.TryParse(parts[9].Trim(), out double discAmt) ? discAmt : 0,
                         TotalPaid = double.TryParse(parts[10].Trim(), out double totalPaid) ? totalPaid : 0,
                         Payment = parts[11].Trim(),
@@ -1425,7 +1665,166 @@ namespace PhoneMaster.GUI
             MenuPanel.Visibility = Visibility.Visible;
         }
 
-        // Helpers 
+        // HELPER METHODS
+
+        private void UpdatePaymentSummary()
+        {
+            double basePrice = selectedOrderBasePrice;
+            double discountPercent = 0.0;
+            double discountAmount = 0.0;
+            double totalPayable = basePrice;
+
+            MonthlyInstallmentsLabel.Visibility = Visibility.Collapsed;
+            MonthlyInstallmentsText.Visibility = Visibility.Collapsed;
+            MonthlyInstallmentsText.Text = "£0.00";
+
+            if (ApplyDiscountBox.SelectedItem is ComboBoxItem discountItem)
+            {
+                string applyDiscount = discountItem.Content?.ToString() ?? "";
+
+                if (applyDiscount == "Yes" && discountValidated)
+                {
+                    discountPercent = validatedDiscountPercent;
+                    discountAmount = basePrice * (discountPercent / 100.0);
+                    totalPayable = basePrice - discountAmount;
+                }
+            }
+
+            BasePriceText.Text = $"Base Price: £{basePrice:F2}";
+            DiscountAmountText.Text = $"Discount Amount: £{discountAmount:F2}";
+            TotalPayableText.Text = $"Total Payable: £{totalPayable:F2}";
+
+            if (PaymentMethodBox.SelectedItem is ComboBoxItem paymentMethodItem &&
+                PaymentOptionBox.SelectedItem is ComboBoxItem paymentOptionItem &&
+                PendingOrdersGrid.SelectedItem is PendingOrderDisplay selectedOrder)
+            {
+                string paymentMethod = paymentMethodItem.Content?.ToString() ?? "";
+                string paymentOption = paymentOptionItem.Content?.ToString() ?? "";
+
+                if (paymentMethod == "CARD" && paymentOption == "Monthly Instalments")
+                {
+                    var contract = selectedOrder.OrderRef.GetContract();
+                    int months = 0;
+
+                    if (contract is PhoneSimPackage package)
+                    {
+                        months = package.Months;
+                    }
+                    else if (contract is HireContract hire)
+                    {
+                        months = hire.Years * 12;
+                    }
+
+                    if (months > 0)
+                    {
+                        double monthlyInstallment = totalPayable / months;
+
+                        MonthlyInstallmentsLabel.Visibility = Visibility.Visible;
+                        MonthlyInstallmentsText.Visibility = Visibility.Visible;
+                        MonthlyInstallmentsText.Text = $"£{monthlyInstallment:F2} for {months} months";
+                    }
+                }
+            }
+        }
+
+        private void UpdateOrderSummary()
+        {
+            try
+            {
+                if (CreateOrderPhonesGrid.SelectedItem == null)
+                {
+                    PhoneDetailsText.Text = "-";
+                    TotalPriceText.Text = "£0.00";
+                    MonthlyCostText.Text = "£0.00";
+                    return;
+                }
+
+                if (!int.TryParse(QuantityTextBox.Text, out int quantity) || quantity <= 0)
+                {
+                    TotalPriceText.Text = "£0.00";
+                    MonthlyCostText.Text = "£0.00";
+                    return;
+                }
+
+                Phone phone = (Phone)CreateOrderPhonesGrid.SelectedItem;
+                PhoneDetailsText.Text = $"{phone.Manufacturer} {phone.Model} {phone.Storage}GB - £{phone.Price:F2}";
+
+
+                if (ContractTypeBox.SelectedItem == null)
+                {
+                    TotalPriceText.Text = "£0.00";
+                    MonthlyCostText.Text = "£0.00";
+                    return;
+                }
+
+                string contractType = ((ComboBoxItem)ContractTypeBox.SelectedItem).Content.ToString()!;
+                Contract contract;
+
+                if (contractType == "SIM-Free")
+                {
+                    contract = new SimFree(phone.Price);
+                }
+                else
+                {
+                    if (PlanTypeBox.SelectedItem == null || DurationBox.SelectedItem == null)
+                    {
+                        TotalPriceText.Text = "£0.00";
+                        MonthlyCostText.Text = "£0.00";
+                        return;
+                    }
+
+                    string planTypeText = ((ComboBoxItem)PlanTypeBox.SelectedItem).Content.ToString()!;
+                    PlanType planType = (planTypeText == "Standard")
+                        ? PlanType.STANDARD
+                        : PlanType.PREMIUM;
+
+                    if (DurationBox.SelectedItem is not ComboBoxItem durationItem)
+                    {
+                        TotalPriceText.Text = "£0.00";
+                        MonthlyCostText.Text = "£0.00";
+                        return;
+                    }
+
+                    int duration = int.Parse(durationItem.Content?.ToString() ?? "0");
+                    if (contractType == "Phone + SIM Package")
+                    {
+                        contract = new PhoneSimPackage(phone.Price, duration, planType);
+                    }
+                    else if (contractType == "Hire Contract")
+                    {
+                        contract = new HireContract(phone.Price, planType, duration);
+                    }
+                    else
+                    {
+                        TotalPriceText.Text = "£0.00";
+                        MonthlyCostText.Text = "£0.00";
+                        return;
+                    }
+                }
+
+                double total = contract.CalculateTotal(quantity);
+                double monthly = 0;
+
+                if (contract is PhoneSimPackage p)
+                {
+                    monthly = total / p.Months;
+                }
+                else if (contract is HireContract h)
+                {
+                    monthly = total / (h.Years * 12);
+                }
+
+                TotalPriceText.Text = $"£{total:F2}";
+                MonthlyCostText.Text = monthly > 0 ? $"£{monthly:F2}" : "N/A";
+            }
+            catch
+            {
+                TotalPriceText.Text = "£0.00";
+                MonthlyCostText.Text = "£0.00";
+            }
+        }
+
+        // Actions Methods
         private void TriggerButtonOnEnter(System.Windows.Input.KeyEventArgs e, RoutedEventHandler action)
         {
             if (e.Key == System.Windows.Input.Key.Enter)
