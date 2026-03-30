@@ -13,6 +13,29 @@
     <None Remove="Assets\PhoneMasterLogo.jpg" />
     <None Remove="Assets\welcomelogo.png" />
     <None Remove="Assets\welcomscreenlogo.jpg" />
+    <None Remove="Data\clients.txt" />
+    <None Remove="Data\inventory_log.txt" />
+    <None Remove="Data\phones.txt" />
+    <None Remove="Data\staff.txt" />
+    <None Remove="Data\transactions.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Data\clients.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\inventory_log.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\phones.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\staff.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\transactions.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

@@ -1,0 +1,78 @@
+COMPANY|Check LTD|11221122|ps@yahoo.com|07675945672|1 Jol St|G1 1AA|Glasgow
+CUSTOMER|Donetz|pasar@gmail.com|06567757856|22 Main St|ML4 4UU|Bellshill
+CUSTOMER|Lorent|loranzo@gmail.com|07675895555|1 Jay St|G1 1KW|Glasgow
+COMPANY|Dorado LTD|123456789|dorato@gmail.com|0756776669|1 Still St|G1 1 AA|Glasgow
+COMPANY|Donatela LTD|12345677889|dona@gmail.com|0787667882|120 Main St|G1 2HH|Glasgow
+COMPANY|DAlta LTD|123456789|pasariss@gmail.com|07678046754|1 Low St|EH1 1JJ|Edinburgh
+CUSTOMER|Daniel|pasariss@gmail.com|0747506778|1 Main St|Ml1 3Lp|Mothgerwell
+CUSTOMER|q|q|q|q|q|q
+CUSTOMER|w|w|w|w|w|w
+CUSTOMER|a|aa|a|a|a|a
+COMPANY|dd|dd|dd|dd|dd|dd|dd
+CUSTOMER|1|1|1|1|1|1
+COMPANY|dan|nnn|nnn|nnn|nn|nn|nn
+CUSTOMER|e|e|e|e|e|e
+CUSTOMER|danut|dd|d|d|d|dd
+CUSTOMER|karl|aaa|aaa|aa|aa|aa
+CUSTOMER|dani|a|a|aa|a|a
+CUSTOMER|dan|ss|ss|ss|ss|ss
+CUSTOMER|marek|da|da|da|da|da
+CUSTOMER|nu merge|d|d|d|d|a
+COMPANY|merge|a|a|a|a|a|a
+COMPANY|service|a|a|aa|a|a|a
+COMPANY|Salman|a|a|a|a|a|a
+CUSTOMER|Roxana|bandac@gmail.com|07676667777|110|ML1 3LP|Iasi
+CUSTOMER|aa|a|a|a|a|a
+CUSTOMER|aa|a|a|a|a|a
+COMPANY|Sales LTD|a|a|a|a|a|aa
+CUSTOMER|rox|a|a|a|a|a
+COMPANY|dada|d|d|d|d|d|d
+COMPANY|a|a|a|a|a|a|a
+COMPANY|a|a|a|a|a|a|a
+COMPANY|Jan LTD|a|a|a|a|a|a
+COMPANY|AO LTD|a|a|a|a|a|a
+COMPANY|Currys LTD|a|a|a|a|a|a
+CUSTOMER|andu|a|a|a|a|a
+COMPANY|Argos LTD|1234567890|argos@gmail.com|07576766655|1 Main Quay|L11 2LL|London
+CUSTOMER|Alex|alex@gmail.com|076766676676|1 Main Street|ML1 1 LL|Motherwell
+CUSTOMER|Selen|aa@gmail.com|12112212|12 Grave Street|G1 1JL|Glasgow
+CUSTOMER|Sheik|sal@yahoo.com|07475036566|100 Gapfh St|G21 2HG|Glasgow
+CUSTOMER|da|d|d|d|d|d
+CUSTOMER|dan|s|s|s|s|s
+COMPANY|aAAAA|a|a|a|a|a|a
+CUSTOMER|Daniel|a|a|a|a|a
+COMPANY|da|a|a|a|a|a|a
+COMPANY|NextGen Ltd|a|a|a|a|a|a
+COMPANY|Delino Ltd|1234567890|delino@gmail.com|01415665445|28 Smart Street|PA1 2JA|Paisley
+COMPANY|dan|a|a|a|a|a|a
+CUSTOMER|a|a|a|a|a|a
+CUSTOMER|a|a|a|a|a|a
+CUSTOMER|a|a|a|a|a|a
+COMPANY|a|a|a|a|a|a|a
+CUSTOMER|cu SF|a|a|a|aa|a
+CUSTOMER|a|a|a|a|a|a
+CUSTOMER|a|a|a|a|a|a
+CUSTOMER|b|a|a|a|a|a
+COMPANY|c|d|sd|d|d|d|d
+CUSTOMER|a|a|a|a|a|a
+CUSTOMER|b|a|a|a|a|a
+COMPANY|c|s|s|s|s|ss|s
+COMPANY|a|a|a|a|a|a|a
+COMPANY|ba|a|a|a|a|a|a
+CUSTOMER|d|d|d|d|d|d
+CUSTOMER|a|a|a|a|a|a
+COMPANY|dw|1|q|11|1|1|1
+COMPANY|sss|s|ss|ss|ss|ss|s
+CUSTOMER|q|q|q|q|q|q
+COMPANY|RW|W|W|W|W|W|W
+COMPANY|Q|Q|Q|Q|Q|Q|Q
+COMPANY|dwdqwdd|d|ddd|wd|d|w|dw
+COMPANY|dwqd|w|ww|ww|w|w|w
+COMPANY|ee|e|eeqeqe|e|eq|e|qe
+COMPANY|q|q|q|q|q|q|q
+CUSTOMER|q|q|q|q|q|q
+COMPANY|sam|q|q|q|q|q|q
+COMPANY|q|q|q|q|q|q|q
+CUSTOMER|qwq|q|q|q|q|q
+COMPANY|Delux Media Ltd|123456789|q|q|q|q|q
+COMPANY|Connect Ltd|q|q|q|q|q|q

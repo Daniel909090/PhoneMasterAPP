@@ -1,29 +1,45 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+using System.Globalization;
+using System.IO;
 using PhoneMaster.Core.Models;
 
 namespace PhoneMaster.Core.Services
 {
     public static class FileHandler
     {
-        private const string PHONE_FILE = "phones.txt";
-        private const string TRANSACTION_FILE = "transactions.txt";
-        private const string RECEIPT_FOLDER = "receipts";
-        private const string INVENTORY_LOG_FILE = "inventory_log.txt";
-        private const string CLIENT_FILE = "clients.txt";
-        private const string STAFF_FILE = "staff.txt";
+        private static readonly string basePath = AppDomain.CurrentDomain.BaseDirectory;
+        private static readonly string dataPath = Path.Combine(basePath, "Data");
+
+        private static readonly string phoneFilePath = Path.Combine(dataPath, "phones.txt");
+        private static readonly string transactionFilePath = Path.Combine(dataPath, "transactions.txt");
+        private static readonly string inventoryLogFilePath = Path.Combine(dataPath, "inventory_log.txt");
+        private static readonly string clientFilePath = Path.Combine(dataPath, "clients.txt");
+        private static readonly string staffFilePath = Path.Combine(dataPath, "staff.txt");
+        private static readonly string receiptFolderPath = Path.Combine(
+         Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "PhoneMaster","Receipts" );
+
+        private static void EnsureFilesExist()
+        {
+            Directory.CreateDirectory(dataPath);
+            Directory.CreateDirectory(receiptFolderPath);
+
+            if (!File.Exists(phoneFilePath)) File.WriteAllText(phoneFilePath, "");
+            if (!File.Exists(clientFilePath)) File.WriteAllText(clientFilePath, "");
+            if (!File.Exists(transactionFilePath)) File.WriteAllText(transactionFilePath, "");
+            if (!File.Exists(inventoryLogFilePath)) File.WriteAllText(inventoryLogFilePath, "");
+            if (!File.Exists(staffFilePath)) File.WriteAllText(staffFilePath, "");
+        }
 
         public static List<Phone> LoadPhones()
         {
+            EnsureFilesExist();
+
             List<Phone> phones = new List<Phone>();
 
             try
             {
-                using StreamReader sr = new StreamReader(PHONE_FILE);
+                using StreamReader sr = new StreamReader(phoneFilePath);
                 string? line;
 
                 while ((line = sr.ReadLine()) != null)
@@ -43,7 +59,7 @@ namespace PhoneMaster.Core.Services
                         string model = parts[2].Trim();
                         int storage = int.Parse(parts[3].Trim());
                         int releaseYear = int.Parse(parts[4].Trim());
-                        double price = double.Parse(parts[5].Trim());
+                        double price = double.Parse(parts[5].Trim(), CultureInfo.InvariantCulture);
                         int stock = int.Parse(parts[6].Trim());
 
                         phones.Add(new Phone(phoneID, manufacturer, model, storage, releaseYear, price, stock));
@@ -62,9 +78,11 @@ namespace PhoneMaster.Core.Services
 
         public static void SavePhones(List<Phone> phones)
         {
+            EnsureFilesExist();
+
             try
             {
-                using StreamWriter sw = new StreamWriter(PHONE_FILE);
+                using StreamWriter sw = new StreamWriter(phoneFilePath, false);
 
                 foreach (Phone p in phones)
                 {
@@ -74,7 +92,7 @@ namespace PhoneMaster.Core.Services
                         p.Model + "|" +
                         p.Storage + "|" +
                         p.ReleaseYear + "|" +
-                        p.Price + "|" +
+                        p.Price.ToString(CultureInfo.InvariantCulture) + "|" +
                         p.Stock);
                 }
             }
@@ -85,9 +103,11 @@ namespace PhoneMaster.Core.Services
 
         public static void SaveTransaction(string record)
         {
+            EnsureFilesExist();
+
             try
             {
-                using StreamWriter sw = new StreamWriter(TRANSACTION_FILE, true);
+                using StreamWriter sw = new StreamWriter(transactionFilePath, true);
                 sw.WriteLine(record);
             }
             catch
@@ -97,16 +117,13 @@ namespace PhoneMaster.Core.Services
 
         public static List<string> LoadTransactions()
         {
-            List<string> transactions = new List<string>();
+            EnsureFilesExist();
 
-            if (!File.Exists(TRANSACTION_FILE))
-            {
-                return transactions; // file missing → empty list
-            }
+            List<string> transactions = new List<string>();
 
             try
             {
-                using StreamReader sr = new StreamReader(TRANSACTION_FILE);
+                using StreamReader sr = new StreamReader(transactionFilePath);
                 string? line;
 
                 while ((line = sr.ReadLine()) != null)
@@ -126,14 +143,11 @@ namespace PhoneMaster.Core.Services
 
         public static void WriteReceipt(string filename, string content)
         {
+            EnsureFilesExist();
+
             try
             {
-                if (!Directory.Exists(RECEIPT_FOLDER))
-                {
-                    Directory.CreateDirectory(RECEIPT_FOLDER);
-                }
-
-                string filePath = Path.Combine(RECEIPT_FOLDER, filename);
+                string filePath = Path.Combine(receiptFolderPath, filename);
                 File.WriteAllText(filePath, content);
             }
             catch
@@ -143,9 +157,11 @@ namespace PhoneMaster.Core.Services
 
         public static void SaveClient(Client client)
         {
+            EnsureFilesExist();
+
             try
             {
-                using StreamWriter sw = new StreamWriter(CLIENT_FILE, true);
+                using StreamWriter sw = new StreamWriter(clientFilePath, true);
                 sw.WriteLine(client.ToRecord());
             }
             catch
@@ -155,11 +171,13 @@ namespace PhoneMaster.Core.Services
 
         public static List<string> LoadClients()
         {
+            EnsureFilesExist();
+
             List<string> clients = new List<string>();
 
             try
             {
-                using StreamReader sr = new StreamReader(CLIENT_FILE);
+                using StreamReader sr = new StreamReader(clientFilePath);
                 string? line;
 
                 while ((line = sr.ReadLine()) != null)
@@ -179,11 +197,13 @@ namespace PhoneMaster.Core.Services
 
         public static List<string> LoadStaff()
         {
+            EnsureFilesExist();
+
             List<string> staff = new List<string>();
 
             try
             {
-                using StreamReader sr = new StreamReader(STAFF_FILE);
+                using StreamReader sr = new StreamReader(staffFilePath);
                 string? line;
 
                 while ((line = sr.ReadLine()) != null)
@@ -203,14 +223,13 @@ namespace PhoneMaster.Core.Services
 
         public static List<string> LoadInventoryLogs()
         {
+            EnsureFilesExist();
+
             List<string> logs = new List<string>();
 
             try
             {
-                if (!File.Exists(INVENTORY_LOG_FILE))
-                    return logs;
-
-                using StreamReader sr = new StreamReader(INVENTORY_LOG_FILE);
+                using StreamReader sr = new StreamReader(inventoryLogFilePath);
                 string? line;
 
                 while ((line = sr.ReadLine()) != null)
@@ -228,23 +247,27 @@ namespace PhoneMaster.Core.Services
             return logs;
         }
 
-        public static void SaveInventoryLog(string action,
-                                            string phoneID,
-                                            string phoneModel,
-                                            string details,
-                                            string performedBy)
+        public static void SaveInventoryLog(
+            string action,
+            string phoneID,
+            string phoneModel,
+            string details,
+            string performedBy)
         {
+            EnsureFilesExist();
+
             string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
-            string logEntry = timestamp +
-                              " | " + performedBy +  
-                              " | " + action +
-                              " | " + phoneID + " " + phoneModel +
-                              " | " + details;
+            string logEntry =
+                timestamp + "|" +
+                performedBy + "|" +
+                action + "|" +
+                phoneID + " " + phoneModel + "|" +
+                details;
 
             try
             {
-                using StreamWriter sw = new StreamWriter(INVENTORY_LOG_FILE, true);
+                using StreamWriter sw = new StreamWriter(inventoryLogFilePath, true);
                 sw.WriteLine(logEntry);
             }
             catch
