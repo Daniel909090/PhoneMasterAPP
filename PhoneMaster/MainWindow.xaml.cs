@@ -101,7 +101,7 @@ namespace PhoneMaster.GUI
 
             if (ClientTypeBox.SelectedItem == null)
             {
-                MessageBox.Show("Select client type.");
+                MessageBox.Show("Please select a Client Type.");
                 return null;
             }
 
@@ -335,23 +335,25 @@ namespace PhoneMaster.GUI
                 return;
             }
 
+
             if (!int.TryParse(QuantityTextBox.Text, out int quantity) || quantity <= 0)
             {
-                MessageBox.Show("Enter quantity first.");
+                MessageBox.Show("Enter a valid quantity.");
                 QuantityTextBox.Focus();
                 return;
             }
 
+          
             if (quantity > selectedPhone.Stock)
             {
-                MessageBox.Show("Not enough stock available.");
+                MessageBox.Show($"Not enough stock available. Only {selectedPhone.Stock} left.");
                 QuantityTextBox.Focus();
                 return;
             }
 
             if (ClientTypeBox.SelectedItem == null)
             {
-                MessageBox.Show("Select client type.");
+                MessageBox.Show("Please select the Client Type.");
                 return;
             }
 
@@ -704,7 +706,7 @@ namespace PhoneMaster.GUI
 
             if (PaymentMethodBox.SelectedItem == null)
             {
-                MessageBox.Show("Select payment method.");
+                MessageBox.Show("Please select a Payment method.");
                 return;
             }
 
@@ -715,6 +717,9 @@ namespace PhoneMaster.GUI
                 return;
             }
 
+            var order = selected.OrderRef;
+            var contract = order.GetContract();
+
             string paymentMethod =
                 ((ComboBoxItem)PaymentMethodBox.SelectedItem).Content.ToString()!;
 
@@ -723,28 +728,45 @@ namespace PhoneMaster.GUI
                 string accountNumber = AccountNumberBox.Text.Trim();
                 string sortCode = SortCodeBox.Text.Trim();
 
+                if (string.IsNullOrWhiteSpace(accountNumber) && string.IsNullOrWhiteSpace(sortCode))
+                {
+                    MessageBox.Show("Sort Code and Account Number are required.");
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(accountNumber))
+                {
+                    MessageBox.Show("Account Number is required.");
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(sortCode))
+                {
+                    MessageBox.Show("Sort Code is required.");
+                    return;
+                }
+
                 if (!System.Text.RegularExpressions.Regex.IsMatch(accountNumber, @"^\d{8}$"))
                 {
-                    MessageBox.Show("Account number must be exactly 8 digits.");
+                    MessageBox.Show("Account Number must be exactly 8 digits.");
                     return;
                 }
 
                 if (!System.Text.RegularExpressions.Regex.IsMatch(sortCode, @"^\d{2}-\d{2}-\d{2}$"))
                 {
-                    MessageBox.Show("Sort code must be in format 12-34-56.");
+                    MessageBox.Show("Sort Code must be in format 12-34-56.");
                     return;
                 }
-            }
 
-            var order = selected.OrderRef;
-            var contract = order.GetContract();
+                
+            }
 
             // Require payment option only for PhoneSimPackage and HireContract when payment is CARD
             if ((contract is PhoneSimPackage || contract is HireContract) &&
                 paymentMethod == "CARD" &&
                 PaymentOptionBox.SelectedItem == null)
             {
-                MessageBox.Show("Select payment option.");
+                MessageBox.Show("Select a Payment option.");
                 return;
             }
 

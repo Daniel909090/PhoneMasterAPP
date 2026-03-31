@@ -185,7 +185,7 @@
                     Style="{StaticResource MenuButton}"
                     Click="Transactions_Click"/>
 
-                    <Button Content="Back"
+                    <Button Content="Exit"
                     Height="46"
                     Margin="0,14,0,0"
                     Style="{StaticResource ExitMenuButton}"
