@@ -46,36 +46,206 @@ namespace PhoneMaster.GUI
     }
     public partial class MainWindow : Window
     {
-        private Inventory inventory = new Inventory();
+        private Inventory? inventory;
         private Staff? currentUser;
         private PhoneMaster.Core.Services.Order? currentOrder;
         private List<PhoneMaster.Core.Services.Order> pendingOrders = new List<PhoneMaster.Core.Services.Order>();
         private double selectedOrderBasePrice = 0.0;
         private bool discountValidated = false;
         private double validatedDiscountPercent = 0.0;
+
         public MainWindow()
         {
             InitializeComponent();
-            LoadContractTypes();
+            IdleMode();
+        }
+     
 
-            ApplyDiscountBox.SelectedIndex = 0;
-            PaymentMethodBox.SelectedIndex = -1;
+        private void StartButton_Click(object sender, RoutedEventArgs e)
+        {
 
+            DatabaseManager.InitializeDatabase();
+            inventory = new Inventory();
+            AppMenu();
 
         }
-       
+
+
+        private void IdleMode()
+        {
+            HideAllPanels();
+            WelcomePanel.Visibility = Visibility.Visible;
+
+            currentUser = null;
+            currentOrder = null;
+            selectedOrderBasePrice = 0.0;
+
+            ResetDiscountApprovalState();
+
+            PaymentMethodBox.SelectedIndex = -1;
+            PaymentOptionBox.SelectedIndex = -1;
+            ApplyDiscountBox.SelectedIndex = 0;
+
+            ProcessedByBox.Text = "";
+            SortCodeBox.Text = "";
+            AccountNumberBox.Text = "";
+
+            ProcessSummaryText.Text = "Select an order to view details.";
+
+            ShowTransactionsWelcome();
+        }
+
+
+        private void AppMenu()
+        {
+            HideAllPanels();
+            MenuPanel.Visibility = Visibility.Visible;
+        }
+
+
+        private void HideAllPanels()
+        {
+            WelcomePanel.Visibility = Visibility.Collapsed;
+            MenuPanel.Visibility = Visibility.Collapsed;
+            PhonesPanel.Visibility = Visibility.Collapsed;
+            CreateOrderPanel.Visibility = Visibility.Collapsed;
+            ProcessOrdersPanel.Visibility = Visibility.Collapsed;
+            InventoryPanel.Visibility = Visibility.Collapsed;
+            TransactionsPanel.Visibility = Visibility.Collapsed;
+        }
+
+        
+        private void ExitButton_Click(object sender, RoutedEventArgs e)
+        {
+            IdleMode();
+        }
+
+
+
+        //PANEL 1 - PHONES PANEL
+
+        private void Phones_Click(object sender, RoutedEventArgs e)
+        {
+            MenuPanel.Visibility = Visibility.Collapsed;
+            PhonesPanel.Visibility = Visibility.Visible;
+            LoadPhones();
+        }
+
+
         private void LoadPhones()
         {
             PhonesGrid.ItemsSource = null;
             PhonesGrid.ItemsSource = inventory.GetPhones();
         }
 
-        // HELPER METHOD 
 
-        private void OrderInputChanged(object sender, RoutedEventArgs e)
+        private void SearchPhone_Click(object sender, RoutedEventArgs e)
         {
-            UpdateOrderSummary();
+            string keyword = SearchBox.Text;
+
+            if (string.IsNullOrWhiteSpace(keyword))
+            {
+                LoadPhones();
+                return;
+            }
+
+            PhonesGrid.ItemsSource = null;
+            PhonesGrid.ItemsSource = inventory.SearchPhone(keyword);
         }
+
+
+        private void SearchBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            TriggerButtonOnEnter(e, SearchPhone_Click);
+        }
+
+
+        private void ShowAllPhones_Click(object sender, RoutedEventArgs e)
+        {
+            SearchBox.Text = "";
+            LoadPhones();
+        }
+
+
+        private void PhonesGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (PhonesGrid.SelectedItem is not Phone selectedPhone)
+            {
+                SelectedPhoneText.Text = "No phone selected";
+                SelectedPhoneImage.Source = null;
+                return;
+            }
+
+            SelectedPhoneText.Text =
+
+                $"{selectedPhone.Manufacturer} {selectedPhone.Model}\n" +
+                $"Storage: {selectedPhone.Storage} GB\n" +
+                $"Release Year: {selectedPhone.ReleaseYear}\n" +
+                $"Price: £{selectedPhone.Price:F2}\n";
+        }
+
+        private void BackFromPhones_Click(object sender, RoutedEventArgs e)
+        {
+            PhonesPanel.Visibility = Visibility.Collapsed;
+            MenuPanel.Visibility = Visibility.Visible;
+        }
+
+
+
+        // PANEL 2 - CREATE ORDER PANEL
+        private void CreateOrder_Click(object sender, RoutedEventArgs e)
+        {
+            MenuPanel.Visibility = Visibility.Collapsed;
+            CreateOrderPanel.Visibility = Visibility.Visible;
+
+            CreateOrderPhonesGrid.ItemsSource = null;
+            CreateOrderPhonesGrid.ItemsSource = inventory.GetPhones();
+        }
+
+
+        private void LoadCreateOrderPhones()
+        {
+            CreateOrderPhonesGrid.ItemsSource = null;
+            CreateOrderPhonesGrid.ItemsSource = inventory.GetPhones();
+        }
+
+        private void SearchCreateOrder_Click(object sender, RoutedEventArgs e)
+        {
+            string searchText = CreateOrderSearchBox.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(searchText))
+            {
+                MessageBox.Show("Enter manufacturer or model to search.");
+                return;
+            }
+
+            var filteredPhones = inventory.GetPhones()
+                .Where(p =>
+                    p.Manufacturer.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                    p.Model.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            CreateOrderPhonesGrid.ItemsSource = filteredPhones;
+
+            if (filteredPhones.Count == 0)
+            {
+                MessageBox.Show("No matching phones found.");
+            }
+        }
+
+
+        private void CreateOrderSearchBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            TriggerButtonOnEnter(e, SearchCreateOrder_Click);
+        }
+
+
+        private void ShowAllCreateOrder_Click(object sender, RoutedEventArgs e)
+        {
+            CreateOrderSearchBox.Text = "";
+            LoadCreateOrderPhones();
+        }
+
 
         private PhoneMaster.Core.Services.Order? BuildOrderFromForm(Client client)
         {
@@ -182,73 +352,14 @@ namespace PhoneMaster.GUI
 
             return order;
         }
-
-
-        private void ExitButton_Click(object sender, RoutedEventArgs e)
-        {
-            MenuPanel.Visibility = Visibility.Collapsed;
-            WelcomePanel.Visibility = Visibility.Visible;
-        }
-        private void ShowAllPhones_Click(object sender, RoutedEventArgs e)
-        {
-            SearchBox.Text = "";
-            LoadPhones();
-        }
-
-
-
-        private void StartButton_Click(object sender, RoutedEventArgs e)
-        {
-            WelcomePanel.Visibility = Visibility.Collapsed;
-            MenuPanel.Visibility = Visibility.Visible;
-        }
-
-        private void Phones_Click(object sender, RoutedEventArgs e)
-        {
-            MenuPanel.Visibility = Visibility.Collapsed;
-            PhonesPanel.Visibility = Visibility.Visible;
-            LoadPhones();
-        }
-
-        private void CreateOrder_Click(object sender, RoutedEventArgs e)
-        {
-            MenuPanel.Visibility = Visibility.Collapsed;
-            CreateOrderPanel.Visibility = Visibility.Visible;
-
-            CreateOrderPhonesGrid.ItemsSource = null;
-            CreateOrderPhonesGrid.ItemsSource = inventory.GetPhones();
-        }
-
-        private void BackFromCreateOrder_Click(object sender, RoutedEventArgs e)
-        {
-            CreateOrderPanel.Visibility = Visibility.Collapsed;
-            MenuPanel.Visibility = Visibility.Visible;
-        }
-
-
-        private void RefreshPendingOrdersGrid()
-        {
-            var displayList = pendingOrders.Select(order => new PendingOrderDisplay
-            {
-                OrderRef = order,
-                ClientName = order.GetClient()?.Name ?? "",
-                PhoneName = order.GetPhone() == null
-                    ? ""
-                    : $"{order.GetPhone()!.Manufacturer} {order.GetPhone()!.Model} {order.GetPhone()!.Storage} GB",
-                Quantity = order.GetQuantity(),
-                ContractType = order.GetContract()?.GetName() ?? "",
-                TotalPrice = order.GetTotalAfterDiscount()
-            }).ToList();
-
-            PendingOrdersGrid.ItemsSource = null;
-            PendingOrdersGrid.ItemsSource = displayList;
-        }
+       
 
         private void ClientTypeBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             LoadContractTypes();
             UpdateOrderSummary();
         }
+
 
         private void ContractTypeBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -306,6 +417,7 @@ namespace PhoneMaster.GUI
             UpdateOrderSummary();
         }
 
+
         private void LoadContractTypes()
         {
             ContractTypeBox.Items.Clear();
@@ -325,6 +437,7 @@ namespace PhoneMaster.GUI
 
             ContractTypeBox.SelectedIndex = 0;
         }
+
 
         private void ContinueOrder_Click(object sender, RoutedEventArgs e)
         {
@@ -382,6 +495,7 @@ namespace PhoneMaster.GUI
             
         }
 
+
         public void ResetCreateOrderPanel()
         {
             CreateOrderSearchBox.Text = "";
@@ -408,6 +522,62 @@ namespace PhoneMaster.GUI
             TotalPriceText.Text = "£0.00";
             MonthlyCostText.Text = "£0.00";
         }
+
+        private void BackFromCreateOrder_Click(object sender, RoutedEventArgs e)
+        {
+            CreateOrderPanel.Visibility = Visibility.Collapsed;
+            MenuPanel.Visibility = Visibility.Visible;
+        }
+
+
+
+        // PANEL 3 - PROCESS ORDER PANEL
+        private void ProcessOrder_Click(object sender, RoutedEventArgs e)
+        {
+            AuthWindow login = new AuthWindow();
+
+            if (login.ShowDialog() != true)
+                return;
+
+            var staff = login.LoggedUser;
+
+
+            if (staff == null || !staff.CanProcessOrders())
+            {
+                MessageBox.Show("Access denied. Only STAFF or MANAGER allowed.");
+                return;
+            }
+            currentUser = staff;
+
+            MenuPanel.Visibility = Visibility.Collapsed;
+            ProcessOrdersPanel.Visibility = Visibility.Visible;
+
+            RefreshPendingOrdersGrid();
+            ProcessSummaryText.Text = "Select an order to view details.";
+
+
+            ProcessedByBox.Text = currentUser?.Username ?? "";
+        }
+
+
+        private void RefreshPendingOrdersGrid()
+        {
+            var displayList = pendingOrders.Select(order => new PendingOrderDisplay
+            {
+                OrderRef = order,
+                ClientName = order.GetClient()?.Name ?? "",
+                PhoneName = order.GetPhone() == null
+                    ? ""
+                    : $"{order.GetPhone()!.Manufacturer} {order.GetPhone()!.Model} {order.GetPhone()!.Storage} GB",
+                Quantity = order.GetQuantity(),
+                ContractType = order.GetContract()?.GetName() ?? "",
+                TotalPrice = order.GetTotalAfterDiscount()
+            }).ToList();
+
+            PendingOrdersGrid.ItemsSource = null;
+            PendingOrdersGrid.ItemsSource = displayList;
+        }
+
 
         private void PendingOrdersGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -518,6 +688,7 @@ namespace PhoneMaster.GUI
             ValidateDiscountButton.IsEnabled = !isLocked;
         }
 
+
         private void ResetDiscountApprovalState()
         {
             discountValidated = false;
@@ -529,6 +700,7 @@ namespace PhoneMaster.GUI
 
             SetDiscountControlsLocked(false);
         }
+
 
         private void ValidateDiscountButton_Click(object sender, RoutedEventArgs e)
         {
@@ -579,6 +751,7 @@ namespace PhoneMaster.GUI
 
             MessageBox.Show("Discount approved successfully.");
         }
+       
 
         private void PaymentMethodBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -619,6 +792,7 @@ namespace PhoneMaster.GUI
             }
         }
 
+
         private void SortCodeBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             string digits = new string(SortCodeBox.Text.Where(char.IsDigit).ToArray());
@@ -646,54 +820,18 @@ namespace PhoneMaster.GUI
             SortCodeBox.CaretIndex = SortCodeBox.Text.Length;
             SortCodeBox.TextChanged += SortCodeBox_TextChanged;
         }
+
+        private void PaymentOptionBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            UpdatePaymentSummary();
+        }
+
         private void DiscountPercentBox_TextChanged(object sender, TextChangedEventArgs e)
         {
         UpdatePaymentSummary();
         }
 
-
         
-
-
-        private void DeleteOrder_Click(object sender, RoutedEventArgs e)
-        {
-            var selected = PendingOrdersGrid.SelectedItem as PendingOrderDisplay;
-
-            if (selected == null)
-            {
-                MessageBox.Show("Select an order first.");
-                return;
-            }
-
-            var order = selected.OrderRef;
-            var phone = order.GetPhone();
-            var client = order.GetClient();
-
-            string orderDetails =
-
-                $"Client: {client?.Name ?? "-"}\n" +
-                $"Phone: {phone?.Manufacturer} {phone?.Model} {phone?.Storage}GB";
-
-            MessageBoxResult result = MessageBox.Show(
-                $"Are you sure you want to delete this order?\n\n{orderDetails}",
-                "Confirm Delete",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning
-            );
-
-            if (result != MessageBoxResult.Yes)
-                return;
-
-            pendingOrders.Remove(order);
-
-            RefreshPendingOrdersGrid();
-
-            ProcessSummaryText.Text = "Select an order to view details.";
-
-            MessageBox.Show("Order deleted successfully.");
-        }
-
-
         private void ProcessSelectedOrder_Click(object sender, RoutedEventArgs e)
         {
             var selected = PendingOrdersGrid.SelectedItem as PendingOrderDisplay;
@@ -820,7 +958,7 @@ namespace PhoneMaster.GUI
                 order.SetCardDetails(AccountNumberBox.Text.Trim(), SortCodeBox.Text.Trim());
             }
 
-            // FINAL CONFIRMATION BEFORE PROCESSING
+            // Final confirmation dialog before final processing
             var phone = order.GetPhone();
             var client = order.GetClient();
 
@@ -879,6 +1017,45 @@ namespace PhoneMaster.GUI
             MessageBox.Show("Order processed successfully.");
         }
 
+        private void DeleteOrder_Click(object sender, RoutedEventArgs e)
+        {
+            var selected = PendingOrdersGrid.SelectedItem as PendingOrderDisplay;
+
+            if (selected == null)
+            {
+                MessageBox.Show("Select an order first.");
+                return;
+            }
+
+            var order = selected.OrderRef;
+            var phone = order.GetPhone();
+            var client = order.GetClient();
+
+            string orderDetails =
+
+                $"Client: {client?.Name ?? "-"}\n" +
+                $"Phone: {phone?.Manufacturer} {phone?.Model} {phone?.Storage}GB";
+
+            MessageBoxResult result = MessageBox.Show(
+                $"Are you sure you want to delete this order?\n\n{orderDetails}",
+                "Confirm Delete",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning
+            );
+
+            if (result != MessageBoxResult.Yes)
+                return;
+
+            pendingOrders.Remove(order);
+
+            RefreshPendingOrdersGrid();
+
+            ProcessSummaryText.Text = "Select an order to view details.";
+
+            MessageBox.Show("Order deleted successfully.");
+        }
+
+
         private void BackFromProcessOrders_Click(object sender, RoutedEventArgs e)
         {
             ProcessOrdersPanel.Visibility = Visibility.Collapsed;
@@ -888,7 +1065,6 @@ namespace PhoneMaster.GUI
 
 
         // PANEL 4 - UPDATE INVENTORY PANEL BASED ON SELECTION AND ACTION
-
         private void Inventory_Click(object sender, RoutedEventArgs e)
         {
             AuthWindow login = new AuthWindow();
@@ -912,11 +1088,48 @@ namespace PhoneMaster.GUI
             LoadInventoryPhones();
         }
 
+
         private void LoadInventoryPhones()
         {
             InventoryPhonesGrid.ItemsSource = null;
             InventoryPhonesGrid.ItemsSource = inventory.GetPhones();
         }
+
+
+        private void SearchInventory_Click(object sender, RoutedEventArgs e)
+        {
+            string keyword = InventorySearchBox.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(keyword))
+            {
+                MessageBox.Show("Enter a manufacturer or model to search.");
+                return;
+            }
+
+            var results = inventory.SearchPhone(keyword);
+
+            InventoryPhonesGrid.ItemsSource = null;
+            InventoryPhonesGrid.ItemsSource = results;
+
+            if (results.Count == 0)
+            {
+                MessageBox.Show("No phones found.");
+            }
+        }
+
+
+        private void InventorySearchBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            TriggerButtonOnEnter(e, SearchInventory_Click);
+        }
+
+
+        private void ShowAllInventory_Click(object sender, RoutedEventArgs e)
+        {
+            InventorySearchBox.Text = "";
+            LoadInventoryPhones();
+        }
+
 
         private void InventoryPhonesGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -951,90 +1164,12 @@ namespace PhoneMaster.GUI
             }
         }
 
-        private void LoadCreateOrderPhones()
+        private void ClearInventoryInputs()
         {
-            CreateOrderPhonesGrid.ItemsSource = null;
-            CreateOrderPhonesGrid.ItemsSource = inventory.GetPhones();
-        }
-        private void SearchCreateOrder_Click(object sender, RoutedEventArgs e)
-        {
-            string searchText = CreateOrderSearchBox.Text.Trim();
-
-            if (string.IsNullOrWhiteSpace(searchText))
-            {
-                MessageBox.Show("Enter manufacturer or model to search.");
-                return;
-            }
-
-            var filteredPhones = inventory.GetPhones()
-                .Where(p =>
-                    p.Manufacturer.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-                    p.Model.Contains(searchText, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            CreateOrderPhonesGrid.ItemsSource = filteredPhones;
-
-            if (filteredPhones.Count == 0)
-            {
-                MessageBox.Show("No matching phones found.");
-            }
-        }
-        private void PhonesGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (PhonesGrid.SelectedItem is not Phone selectedPhone)
-            {
-                SelectedPhoneText.Text = "No phone selected";
-                SelectedPhoneImage.Source = null;
-                return;
-            }
-
-            SelectedPhoneText.Text =
-               
-                $"{selectedPhone.Manufacturer} {selectedPhone.Model}\n" +
-                $"Storage: {selectedPhone.Storage} GB\n" +
-                $"Release Year: {selectedPhone.ReleaseYear}\n" +
-                $"Price: £{selectedPhone.Price:F2}\n" ;
-        }
-        private void ShowAllCreateOrder_Click(object sender, RoutedEventArgs e)
-        {
-            CreateOrderSearchBox.Text = "";
-            LoadCreateOrderPhones();
+            InvNewStockBox.Text = "";
+            InvNewPriceBox.Text = "";
         }
 
-   
-        private void CreateOrderSearchBox_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-            {
-                SearchCreateOrder_Click(sender, e);
-            }
-        }
-        private void SearchInventory_Click(object sender, RoutedEventArgs e)
-        {
-            string keyword = InventorySearchBox.Text.Trim();
-
-            if (string.IsNullOrWhiteSpace(keyword))
-            {
-                MessageBox.Show("Enter a manufacturer or model to search.");
-                return;
-            }
-
-            var results = inventory.SearchPhone(keyword);
-
-            InventoryPhonesGrid.ItemsSource = null;
-            InventoryPhonesGrid.ItemsSource = results;
-
-            if (results.Count == 0)
-            {
-                MessageBox.Show("No phones found.");
-            }
-        }
-
-        private void ShowAllInventory_Click(object sender, RoutedEventArgs e)
-        {
-            InventorySearchBox.Text = "";
-            LoadInventoryPhones();
-        }
         private void ClearAddPhoneFields()
         {
             InvManufacturerBox.Text = "";
@@ -1049,6 +1184,8 @@ namespace PhoneMaster.GUI
             InvOldStockBox.Text = "";
             InvNewStockBox.Text = "";
         }
+
+
         private void NumbersOnly(object sender, TextCompositionEventArgs e)
         {
             Regex regex = new Regex("[^0-9]+");
@@ -1065,6 +1202,7 @@ namespace PhoneMaster.GUI
 
             e.Handled = !regex.IsMatch(newText);
         }
+
 
         private void InventoryActionBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -1173,41 +1311,8 @@ namespace PhoneMaster.GUI
                 $"{selectedPhone.Storage}GB | £{selectedPhone.Price:F2} | Stock: {selectedPhone.Stock}";
             }
         }
-        private void PaymentOptionBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            UpdatePaymentSummary();
-        }
-        private void ProcessOrder_Click(object sender, RoutedEventArgs e)
-        {
-            AuthWindow login = new AuthWindow();
-
-            if (login.ShowDialog() != true)
-                return;
-
-            var staff = login.LoggedUser;
-            
-
-            if (staff == null || !staff.CanProcessOrders())
-            {
-                MessageBox.Show("Access denied. Only STAFF or MANAGER allowed.");
-                return;
-            }
-            currentUser = staff;
-
-            MenuPanel.Visibility = Visibility.Collapsed;
-            ProcessOrdersPanel.Visibility = Visibility.Visible;
-
-            RefreshPendingOrdersGrid();
-            ProcessSummaryText.Text = "Select an order to view details.";
-
-
-            ProcessedByBox.Text = currentUser?.Username ?? "";
-        }
-        private void ClearInventoryInputs()
-        {
-            InvNewStockBox.Text = "";
-            InvNewPriceBox.Text = "";
-        }
+       
+       
         private void InventoryActionButton_Click(object sender, RoutedEventArgs e)
         {
             if (InventoryActionBox.SelectedItem is not ComboBoxItem selectedItem)
@@ -1417,33 +1522,9 @@ namespace PhoneMaster.GUI
             currentUser = null;
         }
 
-        
-        private void SearchPhone_Click(object sender, RoutedEventArgs e)
-        {
-            string keyword = SearchBox.Text;
-
-            if (string.IsNullOrWhiteSpace(keyword))
-            {
-                LoadPhones();
-                return;
-            }
-
-            PhonesGrid.ItemsSource = null;
-            PhonesGrid.ItemsSource = inventory.SearchPhone(keyword);
-        }
-
-
-        private void BackToMenu_Click(object sender, RoutedEventArgs e)
-        {
-            PhonesPanel.Visibility = Visibility.Collapsed;
-            MenuPanel.Visibility = Visibility.Visible;
-        }
-
 
 
         // 5 - VIEW TRANSACTION PANEL
-
-        
         private void Transactions_Click(object sender, RoutedEventArgs e)
         {
             AuthWindow login = new AuthWindow();
@@ -1464,6 +1545,7 @@ namespace PhoneMaster.GUI
             ShowTransactionsWelcome();
         }
 
+
         private void ShowTransactionsWelcome()
         {
             TransactionsWelcomePanel.Visibility = Visibility.Visible;
@@ -1480,6 +1562,7 @@ namespace PhoneMaster.GUI
             ClientsPanel.Visibility = Visibility.Collapsed;
             InventoryLogPanel.Visibility = Visibility.Collapsed;
         }
+
 
             // View Shop Balance
         private void ViewShopBalance_Click(object sender, RoutedEventArgs e)
@@ -1527,7 +1610,8 @@ namespace PhoneMaster.GUI
             PhonesSoldText.Text = totalPhonesSold.ToString();
         }
 
-                // View Order History
+
+            // View Order History
         private void ViewOrderHistory_Click(object sender, RoutedEventArgs e)
         {
             HideAllTransactionsSubPanels();
@@ -1585,7 +1669,9 @@ namespace PhoneMaster.GUI
                 MessageBox.Show("No valid transactions found.");
             }
         }
-                // View Clients
+
+
+            // View Clients
         private void ViewClients_Click(object sender, RoutedEventArgs e)
         {
             HideAllTransactionsSubPanels();
@@ -1637,7 +1723,8 @@ namespace PhoneMaster.GUI
             ClientsGrid.ItemsSource = clientList;
         }
 
-        // View Inventory Log 
+
+             // View Inventory Log 
         private void ViewInventoryLog_Click(object sender, RoutedEventArgs e)
         {
             HideAllTransactionsSubPanels();
@@ -1681,11 +1768,15 @@ namespace PhoneMaster.GUI
                 MessageBox.Show("No valid inventory log entries found.");
             }
         }
+
+
         private void BackFromTransactions_Click(object sender, RoutedEventArgs e)
         {
             TransactionsPanel.Visibility = Visibility.Collapsed;
             MenuPanel.Visibility = Visibility.Visible;
         }
+
+
 
         // HELPER METHODS
 
@@ -1748,6 +1839,7 @@ namespace PhoneMaster.GUI
                 }
             }
         }
+
 
         private void UpdateOrderSummary()
         {
@@ -1846,21 +1938,19 @@ namespace PhoneMaster.GUI
             }
         }
 
-        // Actions Methods
+
+
+        // ACTIONS 
+
+        private void OrderInputChanged(object sender, RoutedEventArgs e)
+        {
+            UpdateOrderSummary();
+        }
+
         private void TriggerButtonOnEnter(System.Windows.Input.KeyEventArgs e, RoutedEventHandler action)
         {
             if (e.Key == System.Windows.Input.Key.Enter)
                 action.Invoke(this, new RoutedEventArgs());
-        }
-
-        private void SearchBox_KeyDown(object sender, KeyEventArgs e)
-        {
-            TriggerButtonOnEnter(e, SearchPhone_Click);
-        }
-
-        private void InventorySearchBox_KeyDown(object sender, KeyEventArgs e)
-        {
-            TriggerButtonOnEnter(e, SearchInventory_Click);
         }
     }
 }

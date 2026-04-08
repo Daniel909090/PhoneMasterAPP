@@ -1,3 +1,0 @@
-sales|1234|STAFF
-central|1234|CENTRAL
-manager|1234|MANAGER
