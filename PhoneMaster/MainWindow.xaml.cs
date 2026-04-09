@@ -1,4 +1,5 @@
-﻿using PhoneMaster.Core.Models;
+﻿using Microsoft.Data.Sqlite;
+using PhoneMaster.Core.Models;
 using PhoneMaster.Core.Services;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -9,23 +10,7 @@ using System.Windows.Input;
 namespace PhoneMaster.GUI
 {
 
-    public class TransactionDisplay
-    {
-        public string OrderID { get; set; } = "";
-        public string Date { get; set; } = "";
-        public string Client { get; set; } = "";
-        public string PhoneID { get; set; } = "";
-        public string Phone { get; set; } = "";
-        public int Quantity { get; set; }
-        public string Contract { get; set; } = "";
-        public double Subtotal { get; set; }
-        public double DiscountPercent { get; set; }
-        public double DiscountAmount { get; set; }
-        public double TotalPaid { get; set; }
-        public string Payment { get; set; } = "";
-        public string ProcessedBy { get; set; } = "";
-    }
-
+    
     public class ClientDisplay
     {
         public string ClientType { get; set; } = "";
@@ -65,7 +50,10 @@ namespace PhoneMaster.GUI
         {
 
             DatabaseManager.InitializeDatabase();
+
             inventory = new Inventory();
+            inventory.LoadPhones();
+
             AppMenu();
 
         }
@@ -1564,7 +1552,7 @@ namespace PhoneMaster.GUI
         }
 
 
-            // View Shop Balance
+        // View Shop Balance
         private void ViewShopBalance_Click(object sender, RoutedEventArgs e)
         {
             HideAllTransactionsSubPanels();
@@ -1573,31 +1561,7 @@ namespace PhoneMaster.GUI
             double stockValue = inventory.CalculateStockValue();
             int totalStockUnits = inventory.GetTotalStockUnits();
 
-            double revenue = 0;
-            double totalDiscountApplied = 0;
-            int totalPhonesSold = 0;
-
-            List<string> transactions = FileHandler.LoadTransactions();
-
-            foreach (string line in transactions)
-            {
-                if (string.IsNullOrWhiteSpace(line))
-                    continue;
-
-                string[] parts = line.Split('|');
-                if (parts.Length < 12)
-                    continue;
-
-                try
-                {
-                    revenue += double.Parse(parts[10].Trim());
-                    totalDiscountApplied += double.Parse(parts[9].Trim());
-                    totalPhonesSold += int.Parse(parts[5].Trim());
-                }
-                catch
-                {
-                }
-            }
+            inventory.GetShopBalanceData(out double revenue, out double totalDiscountApplied, out int totalPhonesSold);
 
             double totalBalance = stockValue + revenue;
 
@@ -1611,161 +1575,56 @@ namespace PhoneMaster.GUI
         }
 
 
-            // View Order History
+        // View Order History
         private void ViewOrderHistory_Click(object sender, RoutedEventArgs e)
         {
             HideAllTransactionsSubPanels();
             OrderHistoryPanel.Visibility = Visibility.Visible;
 
-            List<string> transactions = FileHandler.LoadTransactions();
-
-            if (transactions.Count == 0)
-            {
-                OrderHistoryGrid.ItemsSource = null;
-                MessageBox.Show("No transactions found.");
-                return;
-            }
-
-            List<TransactionDisplay> history = new List<TransactionDisplay>();
-
-            foreach (string line in transactions)
-            {
-                if (string.IsNullOrWhiteSpace(line))
-                    continue;
-
-                string[] parts = line.Split('|');
-                if (parts.Length < 13)
-                    continue;
-
-                try
-                {
-                    history.Add(new TransactionDisplay
-                    {
-                        OrderID = parts[0].Trim(),
-                        Date = parts[1].Trim(),
-                        Client = parts[2].Trim(),
-                        PhoneID = parts[3].Trim(),
-                        Phone = parts[4].Trim(),
-                        Quantity = int.TryParse(parts[5].Trim(), out int qty) ? qty : 0,
-                        Contract = parts[6].Trim(),
-                        Subtotal = double.TryParse(parts[7].Trim(), out double subtotal) ? subtotal : 0,
-                        DiscountPercent  = double.TryParse(parts[8].Trim().Replace("%", "").Trim(), out double discPct) ? discPct : 0,
-                        DiscountAmount = double.TryParse(parts[9].Trim(), out double discAmt) ? discAmt : 0,
-                        TotalPaid = double.TryParse(parts[10].Trim(), out double totalPaid) ? totalPaid : 0,
-                        Payment = parts[11].Trim(),
-                        ProcessedBy = parts[12].Trim()
-                    });
-                }
-                catch
-                {
-                }
-            }
+            List<Transaction> history = DatabaseManager.LoadTransactions();
 
             OrderHistoryGrid.ItemsSource = null;
             OrderHistoryGrid.ItemsSource = history;
 
             if (history.Count == 0)
             {
-                MessageBox.Show("No valid transactions found.");
+                MessageBox.Show("No transactions found.");
             }
         }
 
 
-            // View Clients
+        // View Clients
         private void ViewClients_Click(object sender, RoutedEventArgs e)
         {
             HideAllTransactionsSubPanels();
             ClientsPanel.Visibility = Visibility.Visible;
 
-            List<string> clients = FileHandler.LoadClients();
-            List<ClientDisplay> clientList = new List<ClientDisplay>();
-
-            foreach (string line in clients)
-            {
-                if (string.IsNullOrWhiteSpace(line))
-                    continue;
-
-                string[] parts = line.Split('|');
-                if (parts.Length < 5)
-                    continue;
-
-                if (parts[0].Trim().Equals("CUSTOMER", StringComparison.OrdinalIgnoreCase))
-                {
-                    clientList.Add(new ClientDisplay
-                    {
-                        ClientType = "Customer",
-                        Name = parts.Length > 1 ? parts[1].Trim() : "",
-                        VAT = "",
-                        Email = parts.Length > 2 ? parts[2].Trim() : "",
-                        ContactPhone = parts.Length > 3 ? parts[3].Trim() : "",
-                        Address = (parts.Length > 6)
-                            ? $"{parts[4].Trim()}, {parts[5].Trim()}, {parts[6].Trim()}"
-                            : ""
-                    });
-                }
-                else if (parts[0].Trim().Equals("COMPANY", StringComparison.OrdinalIgnoreCase))
-                {
-                    clientList.Add(new ClientDisplay
-                    {
-                        ClientType = "Company",
-                        Name = parts.Length > 1 ? parts[1].Trim() : "",
-                        VAT = parts.Length > 2 ? parts[2].Trim() : "",
-                        Email = parts.Length > 3 ? parts[3].Trim() : "",
-                        ContactPhone = parts.Length > 4 ? parts[4].Trim() : "",
-                        Address = (parts.Length > 7)
-                            ? $"{parts[5].Trim()}, {parts[6].Trim()}, {parts[7].Trim()}"
-                            : ""
-                    });
-                }
-            }
+            List<Client> clientList = DatabaseManager.LoadClients();
 
             ClientsGrid.ItemsSource = null;
             ClientsGrid.ItemsSource = clientList;
+
+            if (clientList.Count == 0)
+            {
+                MessageBox.Show("No clients found.");
+            }
         }
 
 
-             // View Inventory Log 
+        // View Inventory Log 
         private void ViewInventoryLog_Click(object sender, RoutedEventArgs e)
         {
             HideAllTransactionsSubPanels();
             InventoryLogPanel.Visibility = Visibility.Visible;
 
-            List<string> logs = FileHandler.LoadInventoryLogs();
-
-            if (logs.Count == 0)
-            {
-                InventoryLogGrid.ItemsSource = null;
-                MessageBox.Show("No inventory log entries found.");
-                return;
-            }
-
-            List<InventoryLogDisplay> logList = new List<InventoryLogDisplay>();
-
-            foreach (string line in logs)
-            {
-                if (string.IsNullOrWhiteSpace(line))
-                    continue;
-
-                string[] parts = line.Split('|');
-                if (parts.Length < 5)
-                    continue;
-
-                logList.Add(new InventoryLogDisplay
-                {
-                    Timestamp = parts[0].Trim(),
-                    PerformedBy = parts[1].Trim(),
-                    Action = parts[2].Trim(),
-                    Phone = parts[3].Trim(),
-                    Details = parts[4].Trim()
-                });
-            }
+            List<InventoryLog> logList = DatabaseManager.LoadInventoryLogs();
 
             InventoryLogGrid.ItemsSource = null;
             InventoryLogGrid.ItemsSource = logList;
 
             if (logList.Count == 0)
             {
-                MessageBox.Show("No valid inventory log entries found.");
+                MessageBox.Show("No inventory log entries found.");
             }
         }
 

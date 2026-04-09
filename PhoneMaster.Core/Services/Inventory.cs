@@ -15,52 +15,28 @@ namespace PhoneMaster.Core.Services
 
         public Inventory()
         {
-            phones = FileHandler.LoadPhones();
+            phones = new List<Phone>();
         }
 
-        // Constructor for tests
+        // Constructor for testing only
+        // Used for unit testing (inject mock data)
         public Inventory(List<Phone> phones)
         {
             this.phones = phones ?? new List<Phone>();
         }
+
+        public void LoadPhones()
+        {
+            phones = DatabaseManager.LoadPhones();
+        }
+
 
         public List<Phone> GetPhones()
         {
             return phones;
         }
 
-        public double CalculateStockValue()
-        {
-            double total = 0;
-
-            foreach (Phone p in phones)
-            {
-                total += p.Price * p.Stock;
-            }
-
-            return total;
-        }
-
-        public string GenerateNextPhoneID()
-        {
-            int max = 0;
-
-            foreach (Phone p in phones)
-            {
-                try
-                {
-                    int num = int.Parse(p.PhoneID.Substring(1));
-                    if (num > max) max = num;
-                }
-                catch
-                {
-                }
-            }
-
-            int next = max + 1;
-            return $"P{next:D3}";
-        }
-
+        
         public List<Phone> SearchPhone(string keyword)
         {
             List<Phone> results = new List<Phone>();
@@ -91,24 +67,52 @@ namespace PhoneMaster.Core.Services
             return null;
         }
 
+
+        public string GenerateNextPhoneID()
+        {
+            int max = 0;
+
+            foreach (Phone p in phones)
+            {
+                if (p.PhoneID != null &&
+                    p.PhoneID.StartsWith("P") &&
+                    int.TryParse(p.PhoneID.Substring(1), out int num))
+                {
+                    if (num > max)
+                        max = num;
+                }
+            }
+
+            return $"P{max + 1:D3}";
+        }
+
+
         //Add Phone
         public bool AddPhone(Phone phone, string performedBy)
         {
+            if (phone == null)
+                return false;
+
+            if (phone.Price < 0)
+                return false;
+
             if (phone.Stock < 0 || phone.Stock > 100)
                 return false;
 
-            phones.Add(phone);
-            FileHandler.SavePhones(phones);
+            bool added = DatabaseManager.InsertPhone(phone);
 
-            //  LOGGING Mehodd added
-            FileHandler.SaveInventoryLog(
+            if (!added)
+                return false;
+
+            DatabaseManager.InsertInventoryLog(
+                DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                performedBy,
                 "ADD PHONE",
-                phone.PhoneID,
-                $"{phone.Manufacturer} {phone.Model}",
-                $"Added with price £{phone.Price:F2}, stock {phone.Stock}, storage {phone.Storage}GB",
-                performedBy
+                $"{phone.PhoneID} {phone.Manufacturer} {phone.Model} ({phone.Storage}GB)",
+                $"Added with price £{phone.Price:F2}, stock {phone.Stock}, release year {phone.ReleaseYear}"
             );
 
+            LoadPhones();
             return true;
         }
 
@@ -120,101 +124,140 @@ namespace PhoneMaster.Core.Services
             if (phoneToRemove == null)
                 return false;
 
-            bool removed = phones.RemoveAll(p =>
-                p.PhoneID.Equals(phoneID, StringComparison.OrdinalIgnoreCase)) > 0;
+            bool removed = DatabaseManager.DeletePhone(phoneID);
 
-            if (removed)
-            {
-                FileHandler.SavePhones(phones);
+            if (!removed)
+                return false;
 
-                FileHandler.SaveInventoryLog(
-                    "REMOVE PHONE",
-                    phoneToRemove.PhoneID,
-                    $"{phoneToRemove.Manufacturer} {phoneToRemove.Model}",
-                    "Phone removed from inventory",
-                    performedBy
-                );
-            }
+            DatabaseManager.InsertInventoryLog(
+                DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                performedBy,
+                "REMOVE PHONE",
+                $"{phoneToRemove.PhoneID} {phoneToRemove.Manufacturer} {phoneToRemove.Model}",
+                "Phone removed from inventory"
+            );
 
-            return removed;
+            LoadPhones();
+            return true;
         }
 
-        //Update Stock
+        //Update Stock -  Manually update
         public bool UpdateStock(string phoneID, int newStock, string performedBy)
         {
             if (newStock < 0 || newStock > 100)
                 return false;
 
-            foreach (Phone p in phones)
-            {
-                if (p.PhoneID.Equals(phoneID, StringComparison.OrdinalIgnoreCase))
-                {
-                    int oldStock = p.Stock;
+            Phone? phoneToUpdate = SearchPhoneID(phoneID);
 
-                    p.Stock = newStock;
-                    FileHandler.SavePhones(phones);
+            if (phoneToUpdate == null)
+                return false;
 
-                    FileHandler.SaveInventoryLog(
-                        "UPDATE STOCK",
-                        p.PhoneID,
-                        $"{p.Manufacturer} {p.Model}",
-                        $"Stock changed from {oldStock} to {newStock}",
-                        performedBy
-                    );
+            int oldStock = phoneToUpdate.Stock;
 
-                    return true;
-                }
-            }
+            bool updated = DatabaseManager.UpdatePhoneStock(phoneID, newStock);
 
-            return false;
+            if (!updated)
+                return false;
+
+            DatabaseManager.InsertInventoryLog(
+                DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                performedBy,
+                "UPDATE STOCK",
+                $"{phoneToUpdate.PhoneID} {phoneToUpdate.Manufacturer} {phoneToUpdate.Model} ({phoneToUpdate.Storage}GB)",
+                $"Stock changed from {oldStock} to {newStock}"
+            );
+
+            LoadPhones();
+            return true;
         }
 
         //Change Price
         public bool ChangePrice(string phoneID, double newPrice, string performedBy)
         {
-            foreach (Phone p in phones)
-            {
-                if (p.PhoneID.Equals(phoneID, StringComparison.OrdinalIgnoreCase))
-                {
-                    double oldPrice = p.Price;
+            if (newPrice <= 0)
+                return false;
 
-                    p.Price = newPrice;
-                    FileHandler.SavePhones(phones);
+            Phone? phoneToUpdate = SearchPhoneID(phoneID);
 
-                    FileHandler.SaveInventoryLog(
-                        "CHANGE PRICE",
-                        p.PhoneID,
-                        $"{p.Manufacturer} {p.Model}",
-                        $"Price changed from £{oldPrice:F2} to £{newPrice:F2}",
-                        performedBy
-                    );
+            if (phoneToUpdate == null)
+                return false;
 
-                    return true;
-                }
-            }
+            double oldPrice = phoneToUpdate.Price;
 
-            return false;
+            bool updated = DatabaseManager.UpdatePhonePrice(phoneID, newPrice);
+
+            if (!updated)
+                return false;
+
+            DatabaseManager.InsertInventoryLog(
+                DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                performedBy,
+                "CHANGE PRICE",
+                $"{phoneToUpdate.PhoneID} {phoneToUpdate.Manufacturer} {phoneToUpdate.Model} ({phoneToUpdate.Storage}GB)",
+                $"Price changed from £{oldPrice:F2} to £{newPrice:F2}"
+            );
+
+            LoadPhones();
+            return true;
         }
+
 
         //Automated method that reduces the stock after order is successfully processed
         public bool ReduceStock(string phoneID, int quantity)
         {
-            if (quantity <= 0) return false;
+            if (quantity <= 0)
+                return false;
+
+            Phone? phoneToUpdate = SearchPhoneID(phoneID);
+
+            if (phoneToUpdate == null)
+                return false;
+
+            if (phoneToUpdate.Stock < quantity)
+                return false;
+
+            int newStock = phoneToUpdate.Stock - quantity;
+
+            bool updated = DatabaseManager.UpdatePhoneStock(phoneID, newStock);
+
+            if (!updated)
+                return false;
+
+            LoadPhones();
+            return true;
+        }
+
+
+        // Method to calculate total revenue, total discount applied, and total phones sold
+        public void GetShopBalanceData(out double revenue, out double totalDiscountApplied, out int totalPhonesSold)
+        {
+            revenue = 0;
+            totalDiscountApplied = 0;
+            totalPhonesSold = 0;
+
+            List<Transaction> transactions = DatabaseManager.LoadTransactions();
+
+            foreach (Transaction t in transactions)
+            {
+                revenue += t.TotalPaid;
+                totalDiscountApplied += t.DiscountAmount;
+                totalPhonesSold += t.Quantity;
+            }
+        }
+
+
+        public double CalculateStockValue()
+        {
+            double total = 0;
 
             foreach (Phone p in phones)
             {
-                if (p.PhoneID.Equals(phoneID, StringComparison.OrdinalIgnoreCase))
-                {
-                    if (p.Stock < quantity) return false;
-
-                    p.Stock = p.Stock - quantity;
-                    FileHandler.SavePhones(phones);
-                    return true;
-                }
+                total += p.Price * p.Stock;
             }
 
-            return false;
+            return total;
         }
+
 
         public int GetTotalStockUnits()
         {
@@ -227,5 +270,8 @@ namespace PhoneMaster.Core.Services
 
             return total;
         }
+
+        
+
     }
 }

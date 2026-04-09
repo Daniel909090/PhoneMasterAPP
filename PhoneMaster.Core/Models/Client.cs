@@ -17,7 +17,10 @@ namespace PhoneMaster.Core.Models
         public bool IsCompany { get; }
         public string? VatNumber { get; }
 
-        // Constructor for normal customers
+        public string ClientType => IsCompany ? "Company" : "Customer";
+        public string VAT => IsCompany ? VatNumber ?? "" : "";
+        public string FullAddress => $"{Address}, {Postcode}, {Town}";
+
         public Client(string name, string email, string contactPhone,
                       string address, string postcode, string town)
         {
@@ -31,7 +34,6 @@ namespace PhoneMaster.Core.Models
             VatNumber = null;
         }
 
-        // Constructor for company clients
         public Client(string name, string vatNumber, string email, string contactPhone,
                       string address, string postcode, string town)
         {

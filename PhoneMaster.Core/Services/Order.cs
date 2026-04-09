@@ -142,6 +142,22 @@ namespace PhoneMaster.Core.Services
             return sortCode;
         }
 
+        private string GetContractTypeName(ContractType contractType)
+        {
+            if (contractType == ContractType.SIM_FREE) return "SIM_FREE";
+            if (contractType == ContractType.PHONE_SIM_PACKAGE) return "PHONE_SIM_PACKAGE";
+            if (contractType == ContractType.HIRE_CONTRACT) return "HIRE_CONTRACT";
+            return "";
+        }
+
+        private string GetPlanTypeName(PlanType planType)
+        {
+            if (planType == PlanType.STANDARD) return "STANDARD";
+            if (planType == PlanType.PREMIUM) return "PREMIUM";
+            return "";
+        }
+
+
         public bool ApplyDiscount(double discountPercent)
         {
             if (discountPercent < 0 || discountPercent > MAX_DISCOUNT)
@@ -150,6 +166,7 @@ namespace PhoneMaster.Core.Services
             discount = discountPercent;
             return true;
         }
+
 
         public double CalculateTotal()
         {
@@ -163,38 +180,122 @@ namespace PhoneMaster.Core.Services
             return totalAfterDiscount;
         }
 
+
+        public double CalculateMonthlyPayment()
+        {
+            double total = GetTotalAfterDiscount();
+
+            if (contract is PhoneSimPackage p)
+                return total / p.Months;
+
+            if (contract is HireContract h)
+                return total / (h.Years * 12);
+
+            return 0;
+        }
+
+
+        public void UpdateInventory()
+        {
+            if (phone == null)
+                throw new InvalidOperationException("Phone is not set.");
+
+            bool success = inventory.ReduceStock(phone.PhoneID, quantity);
+
+            if (!success)
+                return;
+        }
+
+
         public void RecordTransaction()
         {
             if (client == null || phone == null || contract == null)
                 throw new InvalidOperationException("Order is incomplete.");
 
-            string dateStr = date.ToString("dd/MM/yyyy HH:mm");
+            var transaction = new Transaction
+            {
+                OrderID = orderID,
+                Date = date.ToString("dd/MM/yyyy HH:mm"),
+                Client = client.Name,
+                PhoneID = phone.PhoneID,
+                Phone = phone.Manufacturer + " " + phone.Model,
+                Quantity = quantity,
+                Contract = GetContractTypeName(contract.GetContractType()),
+                Subtotal = baseTotal,
+                DiscountPercent = discount,
+                DiscountAmount = discountAmount,
+                TotalPaid = totalAfterDiscount,
+                Payment = paymentMethod ?? "",
+                ProcessedBy = processedBy ?? ""
+            };
 
-            string record =
-                orderID + "|" +
-                dateStr + "|" +
-                client.Name + "|" +
-                phone.PhoneID + "|" +
-                phone.Manufacturer + " " + phone.Model + "|" +
-                quantity + "|" +
-                GetContractTypeName(contract.GetContractType()) + "|" +
-                baseTotal.ToString("F2", CultureInfo.InvariantCulture) + "|" +
-                discount + " %|" +
-                discountAmount.ToString("F2", CultureInfo.InvariantCulture) + "|" +
-                totalAfterDiscount.ToString("F2", CultureInfo.InvariantCulture) + "|" +
-                paymentMethod + "|" +
-                processedBy;
+            bool saved = DatabaseManager.InsertTransaction(transaction);
 
-            FileHandler.SaveTransaction(record);
+            if (!saved)
+                throw new InvalidOperationException("Transaction could not be saved.");
         }
+
 
         public void RecordClient()
         {
             if (client == null)
                 throw new InvalidOperationException("Client is not set.");
 
-            FileHandler.SaveClient(client);
+            bool saved = DatabaseManager.InsertClient(client);
+
+            if (!saved)
+                throw new InvalidOperationException("Client could not be saved.");
         }
+
+
+        private string MaskAccountNumber(string? acc)
+        {
+            if (string.IsNullOrWhiteSpace(acc) || acc.Length != 8)
+                return "********";
+
+            return "**** " + acc.Substring(4);
+        }
+
+
+        public bool RequiresUkNumbers()
+        {
+            return contract is PhoneSimPackage || contract is HireContract;
+        }
+
+
+        public void AssignUkNumbersIfNeeded()
+        {
+            assignedUkNumbers.Clear();
+
+            if (!RequiresUkNumbers())
+                return;
+
+            int qty = GetQuantity();
+            if (qty <= 0)
+                return;
+
+            HashSet<string> unique = new();
+            Random rnd = new();
+
+            while (assignedUkNumbers.Count < qty)
+            {
+                int part1 = rnd.Next(0, 100000);
+                int part2 = rnd.Next(0, 10000);
+                string num = "07" + part1.ToString("D5") + part2.ToString("D4");
+
+                if (unique.Add(num))
+                {
+                    assignedUkNumbers.Add(num);
+                }
+            }
+        }
+
+
+        private string GenerateUniqueID()
+        {
+            return DateTime.Now.ToString("yyMMddHHmmss");
+        }
+
 
         public void GenerateReceipt()
         {
@@ -274,90 +375,6 @@ namespace PhoneMaster.Core.Services
             sb.Append("============================");
 
             FileHandler.WriteReceipt(filename, sb.ToString());
-        }
-
-        private string MaskAccountNumber(string? acc)
-        {
-            if (string.IsNullOrWhiteSpace(acc) || acc.Length != 8)
-                return "********";
-
-            return "**** " + acc.Substring(4);
-        }
-
-        public void UpdateInventory()
-        {
-            if (phone == null)
-                throw new InvalidOperationException("Phone is not set.");
-
-            bool success = inventory.ReduceStock(phone.PhoneID, quantity);
-
-            if (!success)
-                return;
-        }
-
-        private string GenerateUniqueID()
-        {
-            return DateTime.Now.ToString("yyMMddHHmmss");
-        }
-
-        public bool RequiresUkNumbers()
-        {
-            return contract is PhoneSimPackage || contract is HireContract;
-        }
-
-        public void AssignUkNumbersIfNeeded()
-        {
-            assignedUkNumbers.Clear();
-
-            if (!RequiresUkNumbers())
-                return;
-
-            int qty = GetQuantity();
-            if (qty <= 0)
-                return;
-
-            HashSet<string> unique = new();
-            Random rnd = new();
-
-            while (assignedUkNumbers.Count < qty)
-            {
-                int part1 = rnd.Next(0, 100000);
-                int part2 = rnd.Next(0, 10000);
-                string num = "07" + part1.ToString("D5") + part2.ToString("D4");
-
-                if (unique.Add(num))
-                {
-                    assignedUkNumbers.Add(num);
-                }
-            }
-        }
-
-        public double CalculateMonthlyPayment()
-        {
-            double total = GetTotalAfterDiscount();
-
-            if (contract is PhoneSimPackage p)
-                return total / p.Months;
-
-            if (contract is HireContract h)
-                return total / (h.Years * 12);
-
-            return 0;
-        }
-
-        private string GetContractTypeName(ContractType contractType)
-        {
-            if (contractType == ContractType.SIM_FREE) return "SIM_FREE";
-            if (contractType == ContractType.PHONE_SIM_PACKAGE) return "PHONE_SIM_PACKAGE";
-            if (contractType == ContractType.HIRE_CONTRACT) return "HIRE_CONTRACT";
-            return "";
-        }
-
-        private string GetPlanTypeName(PlanType planType)
-        {
-            if (planType == PlanType.STANDARD) return "STANDARD";
-            if (planType == PlanType.PREMIUM) return "PREMIUM";
-            return "";
         }
     }
 }
