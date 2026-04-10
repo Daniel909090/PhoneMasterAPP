@@ -19,13 +19,21 @@ namespace PhoneMaster.Core.Services
         private static readonly string bundledDbPath =
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "phonemaster.db");
 
+        private static readonly string bundledImagesFolder =
+           Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "PhoneImages");
+
+        public static string ImagesFolder =>
+            Path.Combine(dataFolder, "PhoneImages");
+
         public static string ConnectionString => $"Data Source={dbPath}";
+
+       
 
         public static void InitializeDatabase()
         {
             Directory.CreateDirectory(dataFolder);
+            Directory.CreateDirectory(ImagesFolder);
 
-            // Copy starter database on first run
             if (!File.Exists(dbPath))
             {
                 if (File.Exists(bundledDbPath))
@@ -40,76 +48,124 @@ namespace PhoneMaster.Core.Services
                 }
             }
 
+            CopyBundledImagesIfMissing();
+
             using var connection = new SqliteConnection(ConnectionString);
             connection.Open();
 
             string createPhonesTable = @"
-            CREATE TABLE IF NOT EXISTS Phones (
-                PhoneID TEXT PRIMARY KEY,
-                Manufacturer TEXT NOT NULL,
-                Model TEXT NOT NULL,
-                Storage INTEGER NOT NULL,
-                ReleaseYear INTEGER NOT NULL,
-                Price REAL NOT NULL,
-                Stock INTEGER NOT NULL
-            );";
+    CREATE TABLE IF NOT EXISTS Phones (
+        PhoneID TEXT PRIMARY KEY,
+        Manufacturer TEXT NOT NULL,
+        Model TEXT NOT NULL,
+        Storage INTEGER NOT NULL,
+        ReleaseYear INTEGER NOT NULL,
+        Price REAL NOT NULL,
+        Stock INTEGER NOT NULL,
+        ImageFileName TEXT
+    );";
 
             string createTransactionsTable = @"
-            CREATE TABLE IF NOT EXISTS Transactions (
-                OrderID TEXT PRIMARY KEY,
-                Date TEXT NOT NULL,
-                Client TEXT NOT NULL,
-                PhoneID TEXT NOT NULL,
-                Phone TEXT NOT NULL,
-                Quantity INTEGER NOT NULL,
-                Contract TEXT NOT NULL,
-                Subtotal REAL NOT NULL,
-                DiscountPercent REAL NOT NULL,
-                DiscountAmount REAL NOT NULL,
-                TotalPaid REAL NOT NULL,
-                Payment TEXT,
-                ProcessedBy TEXT
-            );";
+    CREATE TABLE IF NOT EXISTS Transactions (
+        OrderID TEXT PRIMARY KEY,
+        Date TEXT NOT NULL,
+        Client TEXT NOT NULL,
+        PhoneID TEXT NOT NULL,
+        Phone TEXT NOT NULL,
+        Quantity INTEGER NOT NULL,
+        Contract TEXT NOT NULL,
+        Subtotal REAL NOT NULL,
+        DiscountPercent REAL NOT NULL,
+        DiscountAmount REAL NOT NULL,
+        TotalPaid REAL NOT NULL,
+        Payment TEXT,
+        ProcessedBy TEXT
+    );";
 
             string createClientsTable = @"
-            CREATE TABLE IF NOT EXISTS Clients (
-                ClientID INTEGER PRIMARY KEY AUTOINCREMENT,
-                ClientType TEXT NOT NULL,
-                Name TEXT NOT NULL,
-                VAT TEXT,
-                Email TEXT,
-                ContactPhone TEXT,
-                Address TEXT,
-                Postcode TEXT,
-                Town TEXT
-            );";
+    CREATE TABLE IF NOT EXISTS Clients (
+        ClientID INTEGER PRIMARY KEY AUTOINCREMENT,
+        ClientType TEXT NOT NULL,
+        Name TEXT NOT NULL,
+        VAT TEXT,
+        Email TEXT,
+        ContactPhone TEXT,
+        Address TEXT,
+        Postcode TEXT,
+        Town TEXT
+    );";
 
             string createInventoryLogsTable = @"
-            CREATE TABLE IF NOT EXISTS InventoryLogs (
-                LogID INTEGER PRIMARY KEY AUTOINCREMENT,
-                Timestamp TEXT NOT NULL,
-                PerformedBy TEXT NOT NULL,
-                Action TEXT NOT NULL,
-                Phone TEXT NOT NULL,
-                Details TEXT NOT NULL
-            );";
+    CREATE TABLE IF NOT EXISTS InventoryLogs (
+        LogID INTEGER PRIMARY KEY AUTOINCREMENT,
+        Timestamp TEXT NOT NULL,
+        PerformedBy TEXT NOT NULL,
+        Action TEXT NOT NULL,
+        Phone TEXT NOT NULL,
+        Details TEXT NOT NULL
+    );";
 
             string[] commands =
             {
-            createPhonesTable,
-            createTransactionsTable,
-            createClientsTable,
-            createInventoryLogsTable
-        };
+        createPhonesTable,
+        createTransactionsTable,
+        createClientsTable,
+        createInventoryLogsTable
+    };
 
             foreach (string sql in commands)
             {
                 using var command = new SqliteCommand(sql, connection);
                 command.ExecuteNonQuery();
             }
+
+            EnsureImageFileNameColumnExists(connection);
         }
 
+        private static void EnsureImageFileNameColumnExists(SqliteConnection connection)
+        {
+            using var checkCommand = new SqliteCommand("PRAGMA table_info(Phones);", connection);
+            using var reader = checkCommand.ExecuteReader();
 
+            bool columnExists = false;
+
+            while (reader.Read())
+            {
+                string columnName = reader["name"]?.ToString() ?? "";
+                if (columnName == "ImageFileName")
+                {
+                    columnExists = true;
+                    break;
+                }
+            }
+
+            if (!columnExists)
+            {
+                using var alterCommand = new SqliteCommand(
+                    "ALTER TABLE Phones ADD COLUMN ImageFileName TEXT;",
+                    connection);
+                alterCommand.ExecuteNonQuery();
+            }
+        }
+
+        private static void CopyBundledImagesIfMissing()
+        {
+            if (!Directory.Exists(bundledImagesFolder))
+                return;
+
+            Directory.CreateDirectory(ImagesFolder);
+
+            foreach (string sourceFile in Directory.GetFiles(bundledImagesFolder))
+            {
+                string fileName = Path.GetFileName(sourceFile);
+                string destinationFile = Path.Combine(ImagesFolder, fileName);
+
+                if (!File.Exists(destinationFile))
+                {
+                    File.Copy(sourceFile, destinationFile);
+                }
+            }
+        }
 
         // Load Phones
         public static List<Phone> LoadPhones()
@@ -133,7 +189,8 @@ namespace PhoneMaster.Core.Services
                     Convert.ToInt32(reader["Storage"]),
                     Convert.ToInt32(reader["ReleaseYear"]),
                     Convert.ToDouble(reader["Price"]),
-                    Convert.ToInt32(reader["Stock"])
+                    Convert.ToInt32(reader["Stock"]),
+                    reader["ImageFileName"]?.ToString() ?? ""
                 ));
             }
 
@@ -148,20 +205,21 @@ namespace PhoneMaster.Core.Services
             connection.Open();
 
             string sql = @"
-                INSERT INTO Phones
-                (PhoneID, Manufacturer, Model, Storage, ReleaseYear, Price, Stock)
-                VALUES
-                (@id, @man, @model, @storage, @year, @price, @stock)";
+                        INSERT INTO Phones
+                        (PhoneID, Manufacturer, Model, Storage, ReleaseYear, Price, Stock, ImageFileName)
+                        VALUES
+                        (@PhoneID, @Manufacturer, @Model, @Storage, @ReleaseYear, @Price, @Stock, @ImageFileName)";
 
             using var cmd = new SqliteCommand(sql, connection);
 
-            cmd.Parameters.AddWithValue("@id", phone.PhoneID);
-            cmd.Parameters.AddWithValue("@man", phone.Manufacturer);
-            cmd.Parameters.AddWithValue("@model", phone.Model);
-            cmd.Parameters.AddWithValue("@storage", phone.Storage);
-            cmd.Parameters.AddWithValue("@year", phone.ReleaseYear);
-            cmd.Parameters.AddWithValue("@price", phone.Price);
-            cmd.Parameters.AddWithValue("@stock", phone.Stock);
+            cmd.Parameters.AddWithValue("@PhoneID", phone.PhoneID);
+            cmd.Parameters.AddWithValue("@Manufacturer", phone.Manufacturer);
+            cmd.Parameters.AddWithValue("@Model", phone.Model);
+            cmd.Parameters.AddWithValue("@Storage", phone.Storage);
+            cmd.Parameters.AddWithValue("@ReleaseYear", phone.ReleaseYear);
+            cmd.Parameters.AddWithValue("@Price", phone.Price);
+            cmd.Parameters.AddWithValue("@Stock", phone.Stock);
+            cmd.Parameters.AddWithValue("@ImageFileName", phone.ImageFileName ?? "");
 
             try
             {
@@ -169,7 +227,7 @@ namespace PhoneMaster.Core.Services
             }
             catch
             {
-                return false; // e.g. duplicate PhoneID
+                return false;
             }
         }
 

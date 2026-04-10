@@ -14,11 +14,20 @@ namespace PhoneMaster.Core.Models
         public int Storage { get; set; }
         public int ReleaseYear { get; }
 
+        public string ImageFileName { get; set; }
+
         private double price;
         private int stock;
 
-        public Phone(string phoneID, string manufacturer, string model,
-                     int storage, int releaseYear, double price, int stock)
+        public Phone(
+            string phoneID,
+            string manufacturer,
+            string model,
+            int storage,
+            int releaseYear,
+            double price,
+            int stock,
+            string imageFileName = "")
         {
             PhoneID = phoneID;
             Manufacturer = manufacturer;
@@ -27,6 +36,7 @@ namespace PhoneMaster.Core.Models
             ReleaseYear = releaseYear;
             Price = price;
             Stock = stock;
+            ImageFileName = imageFileName;
         }
 
         public double Price

@@ -5,7 +5,9 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-
+using Microsoft.Win32;
+using System.IO;
+using System.Windows.Media.Imaging;
 
 namespace PhoneMaster.GUI
 {
@@ -38,11 +40,12 @@ namespace PhoneMaster.GUI
         private double selectedOrderBasePrice = 0.0;
         private bool discountValidated = false;
         private double validatedDiscountPercent = 0.0;
-
+        private string selectedImageFileName = "";
         public MainWindow()
         {
             InitializeComponent();
             IdleMode();
+          
         }
      
 
@@ -161,16 +164,48 @@ namespace PhoneMaster.GUI
             {
                 SelectedPhoneText.Text = "No phone selected";
                 SelectedPhoneImage.Source = null;
+                NoImageText.Visibility = Visibility.Visible;
                 return;
             }
 
             SelectedPhoneText.Text =
-
                 $"{selectedPhone.Manufacturer} {selectedPhone.Model}\n" +
                 $"Storage: {selectedPhone.Storage} GB\n" +
                 $"Release Year: {selectedPhone.ReleaseYear}\n" +
                 $"Price: £{selectedPhone.Price:F2}\n";
+
+            string imagePath = Path.Combine(DatabaseManager.ImagesFolder, selectedPhone.ImageFileName ?? "");
+
+            if (!string.IsNullOrWhiteSpace(selectedPhone.ImageFileName) && File.Exists(imagePath))
+            {
+                SelectedPhoneImage.Source = new BitmapImage(new Uri(imagePath));
+                NoImageText.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                SelectedPhoneImage.Source = null;
+                NoImageText.Visibility = Visibility.Visible;
+            }
         }
+
+
+        private void ShowSelectedPhoneDetails(Phone phone)
+        {
+            SelectedPhoneText.Text =
+                $"{phone.Manufacturer} {phone.Model} | {phone.Storage}GB | Year {phone.ReleaseYear} | Price: £{phone.Price:F2} | Stock: {phone.Stock}";
+
+            string imagePath = Path.Combine(DatabaseManager.ImagesFolder, phone.ImageFileName ?? "");
+
+            if (!string.IsNullOrWhiteSpace(phone.ImageFileName) && File.Exists(imagePath))
+            {
+                SelectedPhoneImage.Source = new BitmapImage(new Uri(imagePath));
+            }
+            else
+            {
+                SelectedPhoneImage.Source = null;
+            }
+        }
+
 
         private void BackFromPhones_Click(object sender, RoutedEventArgs e)
         {
@@ -1073,6 +1108,9 @@ namespace PhoneMaster.GUI
             MenuPanel.Visibility = Visibility.Collapsed;
             InventoryPanel.Visibility = Visibility.Visible;
 
+            InventoryActionBox.SelectedIndex = -1;
+            InventoryActionButton.IsEnabled = false;
+            HideAllInventoryFields();
             LoadInventoryPhones();
         }
 
@@ -1191,14 +1229,8 @@ namespace PhoneMaster.GUI
             e.Handled = !regex.IsMatch(newText);
         }
 
-
-        private void InventoryActionBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void HideAllInventoryFields()
         {
-            if (InventoryActionBox.SelectedItem is not ComboBoxItem selectedItem)
-                return;
-
-            string action = selectedItem.Content?.ToString() ?? "";
-
             InvManufacturerLabel.Visibility = Visibility.Collapsed;
             InvManufacturerBox.Visibility = Visibility.Collapsed;
 
@@ -1226,10 +1258,28 @@ namespace PhoneMaster.GUI
             InvNewPriceLabel.Visibility = Visibility.Collapsed;
             InvNewPriceBox.Visibility = Visibility.Collapsed;
 
+            InvCurrentPriceLabel.Visibility = Visibility.Collapsed;
+            InvCurrentPriceBox.Visibility = Visibility.Collapsed;
+
             InvSelectedPhoneLabel.Visibility = Visibility.Collapsed;
             InvSelectedPhoneLabel.Text = "Selected phone: none";
 
-            // Add Phone
+            BrowseImageButton.Visibility = Visibility.Collapsed;
+            SelectedImageText.Visibility = Visibility.Collapsed;
+        }
+        private void InventoryActionBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            HideAllInventoryFields();
+            InventoryActionButton.IsEnabled = true;
+
+            if (InventoryActionBox.SelectedItem is not ComboBoxItem selectedItem)
+            {
+                InventoryActionButton.Content = "Select an Action";
+                return;
+            }
+
+            string action = selectedItem.Content?.ToString() ?? "";
+
             if (action == "Add Phone")
             {
                 ClearAddPhoneFields();
@@ -1255,11 +1305,13 @@ namespace PhoneMaster.GUI
 
                 InvInitialStockLabel.Visibility = Visibility.Visible;
                 InvInitialStockBox.Visibility = Visibility.Visible;
+
+                BrowseImageButton.Visibility = Visibility.Visible;
+                SelectedImageText.Visibility = Visibility.Visible;
             }
             else if (action == "Remove Phone")
             {
                 InventoryActionButton.Content = "Remove Phone";
-
                 InvSelectedPhoneLabel.Visibility = Visibility.Visible;
             }
             else if (action == "Update Stock")
@@ -1271,8 +1323,8 @@ namespace PhoneMaster.GUI
 
                 InvNewStockLabel.Visibility = Visibility.Visible;
                 InvNewStockBox.Visibility = Visibility.Visible;
-
                 InvNewStockBox.Text = "";
+
                 InvSelectedPhoneLabel.Visibility = Visibility.Visible;
             }
             else if (action == "Change Price")
@@ -1285,8 +1337,8 @@ namespace PhoneMaster.GUI
 
                 InvNewPriceLabel.Visibility = Visibility.Visible;
                 InvNewPriceBox.Visibility = Visibility.Visible;
-
                 InvNewPriceBox.Text = "";
+
                 InvSelectedPhoneLabel.Visibility = Visibility.Visible;
             }
 
@@ -1294,13 +1346,12 @@ namespace PhoneMaster.GUI
                 InventoryPhonesGrid.SelectedItem is Phone selectedPhone)
             {
                 InvSelectedPhoneLabel.Text =
-                $"Selected phone:\n" +
-                $"{selectedPhone.PhoneID} - {selectedPhone.Manufacturer} {selectedPhone.Model}\n" +
-                $"{selectedPhone.Storage}GB | £{selectedPhone.Price:F2} | Stock: {selectedPhone.Stock}";
+                    $"Selected phone:\n" +
+                    $"{selectedPhone.PhoneID} - {selectedPhone.Manufacturer} {selectedPhone.Model}\n" +
+                    $"{selectedPhone.Storage}GB | £{selectedPhone.Price:F2} | Stock: {selectedPhone.Stock}";
             }
         }
-       
-       
+
         private void InventoryActionButton_Click(object sender, RoutedEventArgs e)
         {
             if (InventoryActionBox.SelectedItem is not ComboBoxItem selectedItem)
@@ -1355,17 +1406,33 @@ namespace PhoneMaster.GUI
                     return;
                 }
 
+                if (string.IsNullOrWhiteSpace(selectedImageFileName))
+                {
+                    var result = MessageBox.Show(
+                        "No photo selected. Do you want to continue without a photo?",
+                        "No Photo Selected",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Question);
+
+                    if (result == MessageBoxResult.No)
+                    {
+                        SelectPhoneImage();
+                        return; 
+                    }
+                }
+
                 string newPhoneId = inventory.GenerateNextPhoneID();
 
                 Phone newPhone = new Phone(
-                    newPhoneId,
-                    manufacturer,
-                    model,
-                    storage,
-                    releaseYear,
-                    price,
-                    stock
-                );
+                                            newPhoneId,
+                                            manufacturer,
+                                            model,
+                                            storage,
+                                            releaseYear,
+                                            price,
+                                            stock,
+                                            selectedImageFileName
+                                        );
 
                 bool added = inventory.AddPhone(newPhone, currentUser?.Username ?? "UNKNOWN");
 
@@ -1386,8 +1453,13 @@ namespace PhoneMaster.GUI
                 InvOldStockBox.Text = "";
                 InvNewStockBox.Text = "";
 
+                selectedImageFileName = "";
+                SelectedImageText.Text = "No image selected";
+
                 MessageBox.Show("Phone added successfully.");
             }
+
+
 
             // Remove Phone
             else if (action == "Remove Phone")
@@ -1502,6 +1574,35 @@ namespace PhoneMaster.GUI
             }
         }
 
+
+        // browse buuton image for phone
+        private void BrowseImageButton_Click(object sender, RoutedEventArgs e)
+        {
+            SelectPhoneImage();
+        }
+        private bool SelectPhoneImage()
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = "Select Phone Image",
+                Filter = "Image Files|*.jpg;*.jpeg;*.png;*.webp"
+            };
+
+            if (dialog.ShowDialog() != true)
+                return false;
+
+            Directory.CreateDirectory(DatabaseManager.ImagesFolder);
+
+            string fileName = Path.GetFileName(dialog.FileName);
+            string destinationPath = Path.Combine(DatabaseManager.ImagesFolder, fileName);
+
+            File.Copy(dialog.FileName, destinationPath, true);
+
+            selectedImageFileName = fileName;
+            SelectedImageText.Text = fileName;
+
+            return true;
+        }
         private void BackFromInventory_Click(object sender, RoutedEventArgs e)
         {
             InventoryPanel.Visibility = Visibility.Collapsed;

@@ -15,6 +15,37 @@
     <None Remove="Assets\welcomscreenlogo.jpg" />
     <None Remove="Data\clients.txt" />
     <None Remove="Data\inventory_log.txt" />
+    <None Remove="Data\PhoneImages\16-pro-max.png" />
+    <None Remove="Data\PhoneImages\edge-70.png" />
+    <None Remove="Data\PhoneImages\find-x9-pro.png" />
+    <None Remove="Data\PhoneImages\find-x9.png" />
+    <None Remove="Data\PhoneImages\flip-7.png" />
+    <None Remove="Data\PhoneImages\fold-7.png" />
+    <None Remove="Data\PhoneImages\iphone-15-pro-max.png" />
+    <None Remove="Data\PhoneImages\iphone-15-pro.png" />
+    <None Remove="Data\PhoneImages\iphone-15.png" />
+    <None Remove="Data\PhoneImages\iphone-16-pro.png" />
+    <None Remove="Data\PhoneImages\iphone-16.png" />
+    <None Remove="Data\PhoneImages\iphone-17-pro-max.png" />
+    <None Remove="Data\PhoneImages\iphone-17-pro.png" />
+    <None Remove="Data\PhoneImages\iphone-17.png" />
+    <None Remove="Data\PhoneImages\iphone-air.png" />
+    <None Remove="Data\PhoneImages\mate-80-pro-max.png" />
+    <None Remove="Data\PhoneImages\mate-xt.png" />
+    <None Remove="Data\PhoneImages\motorola-signature.png" />
+    <None Remove="Data\PhoneImages\one-15.png" />
+    <None Remove="Data\PhoneImages\one-nord-6.png" />
+    <None Remove="Data\PhoneImages\pixel-10-pro.png" />
+    <None Remove="Data\PhoneImages\pixel-10.png" />
+    <None Remove="Data\PhoneImages\S25-plus.png" />
+    <None Remove="Data\PhoneImages\s25-ultra.png" />
+    <None Remove="Data\PhoneImages\S25.png" />
+    <None Remove="Data\PhoneImages\s26-plus.png" />
+    <None Remove="Data\PhoneImages\s26-ultra.png" />
+    <None Remove="Data\PhoneImages\s26.png" />
+    <None Remove="Data\PhoneImages\trifold.png" />
+    <None Remove="Data\PhoneImages\zenphone-10.png" />
+    <None Remove="Data\PhoneImages\zenphone-12-ultra.png" />
     <None Remove="Data\phonemaster.db" />
     <None Remove="Data\phones.txt" />
     <None Remove="Data\staff.txt" />
@@ -22,6 +53,99 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="Data\PhoneImages\16-pro-max.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\edge-70.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\find-x9-pro.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\find-x9.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\flip-7.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\fold-7.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\iphone-15-pro-max.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\iphone-15-pro.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\iphone-15.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\iphone-16-pro.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\iphone-16.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\iphone-17-pro-max.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\iphone-17-pro.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\iphone-17.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\iphone-air.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\mate-80-pro-max.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\mate-xt.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\motorola-signature.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\one-15.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\one-nord-6.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\pixel-10-pro.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\pixel-10.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\S25-plus.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\s25-ultra.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\S25.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\s26-plus.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\s26-ultra.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\s26.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\trifold.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\zenphone-10.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Data\PhoneImages\zenphone-12-ultra.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Data\phonemaster.db">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

@@ -64,7 +64,7 @@
     <Grid>
 
         <!-- WELCOME SCREEN -->
-        <Grid x:Name="WelcomePanel" Visibility="Visible" Grid.ColumnSpan="2">
+        <Grid x:Name="WelcomePanel" Visibility="Collapsed" Grid.ColumnSpan="2">
             <Grid.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                     <GradientStop Color="#FFF8FBFF" Offset="0"/>
@@ -384,14 +384,25 @@
                            Margin="0,0,0,12"/>
 
                         <Border Grid.Row="1"
-                        Background="#FFFFFFFF"
-                        BorderBrush="#FFD9E2EC"
-                        BorderThickness="1"
-                        CornerRadius="14"
-                        Padding="8"
-                        Margin="0,0,0,12">
-                            <Image x:Name="SelectedPhoneImage"
-                           Stretch="Uniform"/>
+        Background="#FFFFFFFF"
+        BorderBrush="#FFD9E2EC"
+        BorderThickness="1"
+        CornerRadius="14"
+        Padding="8"
+        Margin="0,0,0,12">
+
+                            <Grid>
+                                <Image x:Name="SelectedPhoneImage"
+               Stretch="Uniform"/>
+
+                                <TextBlock x:Name="NoImageText"
+                   Text="No image available"
+                   Foreground="#FF64748B"
+                   FontSize="13"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Visibility="Collapsed"/>
+                            </Grid>
                         </Border>
 
                         <TextBlock Grid.Row="2"
@@ -1291,7 +1302,7 @@
 
 
         <!-- 4. UPDATE INVENTORY PANEL -->
-        <Grid x:Name="InventoryPanel" Visibility="Collapsed" Margin="16">
+        <Grid x:Name="InventoryPanel" Visibility="Visible" Margin="16">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
@@ -1449,13 +1460,15 @@
                         Background="#F9FFFFFF"
                         BorderBrush="#22000000"
                         BorderThickness="1">
+                    
                     <Border.Effect>
                         <DropShadowEffect BlurRadius="14"
                                           ShadowDepth="2"
                                           Opacity="0.14"/>
                     </Border.Effect>
-
-                    <Grid>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                        <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
@@ -1468,6 +1481,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
+                            
                         </Grid.RowDefinitions>
 
 
@@ -1479,6 +1493,7 @@
                                    FontWeight="Bold"
                                    Margin="0,0,0,12"/>
                         <ComboBox x:Name="InventoryActionBox"
+                                  SelectedIndex="-1"
                                   Grid.Row="1"
                                   Margin="0,30,0,10"
                                   Height="24"
@@ -1539,76 +1554,76 @@
                                    FontWeight="SemiBold"
                                    Margin="0,0,0,5"/>
                         <TextBox x:Name="InvReleaseYearBox"
-                         Grid.Row="5"
-                         Margin="0,24,0,10"
-                         Height="24"
-                         Padding="8,4"
-                         VerticalContentAlignment="Center"
-                         MaxLength="4"
-                         PreviewTextInput="NumbersOnly"/>
+                                 Grid.Row="5"
+                                 Margin="0,24,0,10"
+                                 Height="24"
+                                 Padding="8,4"
+                                 VerticalContentAlignment="Center"
+                                 MaxLength="4"
+                                 PreviewTextInput="NumbersOnly"/>
 
                         <TextBlock Grid.Row="6"
-                           x:Name="InvPriceLabel"
-                           Text="Current Price"
-                           FontWeight="SemiBold"
-                           Margin="0,0,0,5"
-                           Visibility="Collapsed"/>
+                                   x:Name="InvPriceLabel"
+                                   Text="Current Price"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,5"
+                                   Visibility="Collapsed"/>
                         <TextBox x:Name="InvPriceBox"
-                         Grid.Row="6"
-                         Margin="0,24,0,10"
-                         Height="24"
-                         Padding="8,4"
-                         VerticalContentAlignment="Center"
-                         MaxLength="8"
-                         Visibility="Collapsed"
-                         PreviewTextInput="PriceInput"/>
+                                 Grid.Row="6"
+                                 Margin="0,24,0,10"
+                                 Height="24"
+                                 Padding="8,4"
+                                 VerticalContentAlignment="Center"
+                                 MaxLength="8"
+                                 Visibility="Collapsed"
+                                 PreviewTextInput="PriceInput"/>
 
                         <TextBlock Grid.Row="7"
-                           x:Name="InvCurrentPriceLabel"
-                           Text="Current Price"
-                           FontWeight="SemiBold"
-                           Margin="0,0,0,5"
-                           Visibility="Collapsed"/>
+                                   x:Name="InvCurrentPriceLabel"
+                                   Text="Current Price"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,5"
+                                   Visibility="Collapsed"/>
                         <TextBox x:Name="InvCurrentPriceBox"
-                         Grid.Row="7"
-                         Margin="0,24,0,10"
-                         Height="24"
-                         Padding="8,4"
-                         VerticalContentAlignment="Center"
-                         IsReadOnly="True"
-                         Visibility="Collapsed"/>
+                                 Grid.Row="7"
+                                 Margin="0,24,0,10"
+                                 Height="24"
+                                 Padding="8,4"
+                                 VerticalContentAlignment="Center"
+                                 IsReadOnly="True"
+                                 Visibility="Collapsed"/>
 
                         <TextBlock Grid.Row="8"
-                           x:Name="InvNewPriceLabel"
-                           Text="Enter New Price"
-                           FontWeight="SemiBold"
-                           Margin="0,0,0,5"
-                           Visibility="Collapsed"/>
+                                   x:Name="InvNewPriceLabel"
+                                   Text="Enter New Price"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,5"
+                                   Visibility="Collapsed"/>
                         <TextBox x:Name="InvNewPriceBox"
-                         Grid.Row="8"
-                         Margin="0,24,0,12"
-                         Height="24"
-                         Padding="8,4"
-                         VerticalContentAlignment="Center"
-                         MaxLength="7"
-                         Visibility="Collapsed"
-                         PreviewTextInput="PriceInput"/>
+                                 Grid.Row="8"
+                                 Margin="0,24,0,12"
+                                 Height="24"
+                                 Padding="8,4"
+                                 VerticalContentAlignment="Center"
+                                 MaxLength="7"
+                                 Visibility="Collapsed"
+                                 PreviewTextInput="PriceInput"/>
 
                         <TextBlock Grid.Row="9"
-                           x:Name="InvInitialStockLabel"
-                           Text="Enter Initial Stock"
-                           FontWeight="SemiBold"
-                           Margin="0,0,0,5"
-                           Visibility="Collapsed"/>
+                                   x:Name="InvInitialStockLabel"
+                                   Text="Enter Initial Stock"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,5"
+                                   Visibility="Collapsed"/>
                         <TextBox x:Name="InvInitialStockBox"
-                         Grid.Row="9"
-                         Margin="0,24,0,12"
-                         Height="24"
-                         Padding="8,4"
-                         VerticalContentAlignment="Center"
-                         MaxLength="3"
-                         Visibility="Collapsed"
-                         PreviewTextInput="NumbersOnly"/>
+                                 Grid.Row="9"
+                                 Margin="0,24,0,12"
+                                 Height="24"
+                                 Padding="8,4"
+                                 VerticalContentAlignment="Center"
+                                 MaxLength="3"
+                                 Visibility="Collapsed"
+                                 PreviewTextInput="NumbersOnly"/>
 
                         <StackPanel Grid.Row="10">
                             <TextBlock x:Name="InvOldStockLabel"
@@ -1647,13 +1662,31 @@
                                        Margin="0,8,0,10"
                                        Visibility="Collapsed"/>
 
-                            <Button x:Name="InventoryActionButton"
-                                    Content="Apply"
-                                    Height="36"
-                                    Style="{StaticResource MenuButton}"
-                                    Click="InventoryActionButton_Click"/>
+                                <Button x:Name="BrowseImageButton"
+                                        Content="Add Photo"
+                                        Height="28"
+                                        Width="120"
+                                        Margin="0,4,0,0"
+                                        Click="BrowseImageButton_Click"/>
+                                <TextBlock x:Name="SelectedImageText"
+                                           Text="No image selected"
+                                           HorizontalAlignment="Center"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="#FF64748B"
+                                           Margin="0,6,0,8"
+                                           TextWrapping="Wrap"/>
+
+                                <Button x:Name="InventoryActionButton"
+                                        Content="Select an Action"
+                                        Height="36"
+                                        Style="{StaticResource MenuButton}"
+                                        Click="InventoryActionButton_Click"/>
                         </StackPanel>
+                        
+                        
                     </Grid>
+                  </ScrollViewer>
                 </Border>
             </Grid>
 
