@@ -21,7 +21,7 @@ Built a desktop application in C# and WPF to simulate the workflow of a mobile p
 - WPF (Windows Presentation Foundation)
 - .NET
 - Visual Studio 2022
-- File-based storage (no database)
+- SQL Database Storage
 
   ## Architecture
 
@@ -35,11 +35,8 @@ The application follows a layered structure:
   - WPF UI (XAML + code-behind)
   - Handles user interaction and displays data
 
-Data is stored using text files:
-- phones.txt
-- transactions.txt
-- clients.txt
-- receipts/
+Data is stored using text files for receipts and Database for other operations.
+
 
 ## Business Logic
 
@@ -71,13 +68,11 @@ Requirements:
 
 ## Limitations
 
-- Uses file-based storage instead of a database
 - Limited validation for user input
 - No authentication system implemented
 
 ## Future Improvements
 
-- Replace file storage with SQL database
 - Implement user authentication and roles
 - Add reporting and analytics
 - Improve UI/UX design
